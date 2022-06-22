@@ -10,23 +10,55 @@ record PolyObj  where
 Const : Type -> PolyObj
 Const ty = MkPolyObj ty (const ty)
 
-pairFns : (a -> Type) -> (c -> Type) -> Pair a c -> Type
-pairFns f g (a, c) = Pair (f a) (g c)
+Prod : PolyObj -> PolyObj -> PolyObj
+Prod a b = MkPolyObj (a.pos, b.pos) (\x => Either (a.dir (fst x)) (b.dir (snd x)))
+
+Parallel : PolyObj -> PolyObj -> PolyObj
+Parallel a b = MkPolyObj (a.pos, b.pos) (\x => (a.dir (fst x), b.dir (snd x)))
+
+PairFns : (a -> Type) -> (c -> Type) -> Pair a c -> Type
+PairFns f g x = Pair (f (fst x)) (g (snd x))
 
 record DepOptic (A, B : PolyObj) where
   constructor MkDepOptic
   res : Type
   f : (pos A) -> Pair res (pos B) -- f a : (res, pos B)
-  f' : {0 a : pos A} -> DepOpticsV2.pairFns (\x => res) (dir B) (f a) -> dir A a
+  f' : {0 a : pos A} -> PairFns (\x => res) (dir B) (f a) -> dir A a
 
 -- Andre: This might be what you are looking for? It feels like it makes more sense than having a `const` function returning `res`
 -- This is the same as having an existential PolyObj
 record VarDepOptic (A, B : PolyObj) where
   constructor MkVarDepOptic
-  res : Type
-  next : res -> Type
-  f : (pos A) -> Pair res (pos B)
-  f' : {0 a : pos A} -> pairFns next (dir B) (f a) -> dir A a
+  c : PolyObj
+  f : (pos A) -> Pair c.pos (pos B)
+  f' : {x : pos A} -> PairFns c.dir (dir B) (f x) -> dir A x
+
+lemmaFst : (x : a) -> fst (x, b) = x
+lemmaFst _ = Refl
+
+transport : x -> y = x -> y
+transport z Refl = z
+
+composition : VarDepOptic a b -> VarDepOptic b c -> VarDepOptic a c
+composition (MkVarDepOptic res f f') (MkVarDepOptic res2 g g') = MkVarDepOptic
+  (Parallel res res2)
+  forward
+  backward
+  where
+    forward : a.pos -> ((res.pos, res2.pos), c.pos)
+    forward x = let r1 = f x
+                    r2 = g (snd r1)
+                in ((fst r1, fst r2), snd r2)
+    backward : {x : a.pos} -> PairFns ((Parallel res res2).dir) (dir c) (forward x) -> dir a x
+    backward ((y, w), z) with (f x) proof p
+      backward ((y, w), z) | (res1Pos, bPos) with (g bPos) proof p'
+        backward ((y, w), z) | (res1Pos, bPos) | (res2Pos, cPos) =
+          f' (transport y (cong res.dir (cong fst p))
+             , let ggg = g' ( transport w (cong res2.dir (cong fst p'))
+                            , transport z (cong c.dir (cong snd p')))
+               in transport ggg (cong b.dir (cong snd p)))
+
+
 
 assoc : (a, (b, c)) -> ((a, b), c)
 assoc (a, (b, c)) = ((a, b), c)
