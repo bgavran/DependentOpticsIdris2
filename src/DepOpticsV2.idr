@@ -6,7 +6,10 @@ record PolyObj  where
   pos : Type
   dir : pos -> Type
 
--- is there already some syntax for this?
+-- The constant container
+Const : Type -> PolyObj
+Const ty = MkPolyObj ty (const ty)
+
 pairFns : (a -> Type) -> (c -> Type) -> Pair a c -> Type
 pairFns f g (a, c) = Pair (f a) (g c)
 
@@ -14,7 +17,16 @@ record DepOptic (A, B : PolyObj) where
   constructor MkDepOptic
   res : Type
   f : (pos A) -> Pair res (pos B) -- f a : (res, pos B)
-  f' : {0 a : pos A} -> pairFns (\x => res) (dir B) (f a) -> dir A a
+  f' : {0 a : pos A} -> DepOpticsV2.pairFns (\x => res) (dir B) (f a) -> dir A a
+
+-- Andre: This might be what you are looking for? It feels like it makes more sense than having a `const` function returning `res`
+-- This is the same as having an existential PolyObj
+record VarDepOptic (A, B : PolyObj) where
+  constructor MkVarDepOptic
+  res : Type
+  next : res -> Type
+  f : (pos A) -> Pair res (pos B)
+  f' : {0 a : pos A} -> pairFns next (dir B) (f a) -> dir A a
 
 assoc : (a, (b, c)) -> ((a, b), c)
 assoc (a, (b, c)) = ((a, b), c)
