@@ -27,11 +27,11 @@ record DepOptic (A, B : PolyObj) where
 
 -- Andre: This might be what you are looking for? It feels like it makes more sense than having a `const` function returning `res`
 -- This is the same as having an existential PolyObj
-record VarDepOptic (A, B : PolyObj) where
+record VarDepOptic (a, b : PolyObj) where
   constructor MkVarDepOptic
   c : PolyObj
-  f : (pos A) -> Pair c.pos (pos B)
-  f' : {x : pos A} -> PairFns c.dir (dir B) (f x) -> dir A x
+  f : a.pos -> Pair c.pos b.pos
+  f' : {x : a.pos} -> PairFns c.dir b.dir (f x) -> a.dir x
 
 lemmaFst : (x : a) -> fst (x, b) = x
 lemmaFst _ = Refl
