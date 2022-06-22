@@ -1,3 +1,4 @@
+module DepOpticsV2
 -- This is version 2 that doesn't work yet. The idea is to not to use projections to define it, and instead use CoPara. It breaks in the record DepOptic
 
 record PolyObj  where
@@ -6,15 +7,14 @@ record PolyObj  where
   dir : pos -> Type
 
 -- is there already some syntax for this?
-pairFns : (a -> b) -> (c -> d) -> Pair a c -> Pair b d
-pairFns f g (a, c) = (f a, g c)
+pairFns : (a -> Type) -> (c -> Type) -> Pair a c -> Type
+pairFns f g (a, c) = Pair (f a) (g c)
 
 record DepOptic (A, B : PolyObj) where
   constructor MkDepOptic
   res : Type
   f : (pos A) -> Pair res (pos B) -- f a : (res, pos B)
-  f' : {0 a : pos A} -> pairFns (id {a = res}) (dir B) (f a) -> dir A a -- I want to get this working
-  -- f' : {0 a : pos A} -> f a -> dir A a -- but this is a nice proxy to start with
+  f' : {0 a : pos A} -> pairFns (\x => res) (dir B) (f a) -> dir A a
 
 assoc : (a, (b, c)) -> ((a, b), c)
 assoc (a, (b, c)) = ((a, b), c)

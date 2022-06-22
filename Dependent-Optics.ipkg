@@ -1,5 +1,5 @@
-package Dependent-Optics
--- version =
+package dependent-optics
+version = 0.0
 authors = "Bruno Gavranovic"
 -- maintainers =
 -- license =
@@ -16,7 +16,7 @@ authors = "Bruno Gavranovic"
 -- depends =
 
 -- modules to install
--- modules =
+modules = DepOpticsV2
 
 -- main file (i.e. file to load at REPL)
 -- main =
