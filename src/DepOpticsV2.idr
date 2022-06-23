@@ -1,3 +1,4 @@
+module DepOpticsV2
 -- This is version 2 that doesn't work yet. The idea is to not to use projections to define it, and instead use CoPara. It breaks in the record DepOptic
 
 record PolyObj  where
@@ -5,9 +6,12 @@ record PolyObj  where
   pos : Type
   dir : pos -> Type
 
--- is there already some syntax for this?
-pairFns : (a -> b) -> (c -> d) -> Pair a c -> Pair b d
-pairFns f g (a, c) = (f a, g c)
+-- The constant container
+Const : Type -> PolyObj
+Const ty = MkPolyObj ty (const ty)
+
+pairFns : (a -> Type) -> (c -> Type) -> Pair a c -> Type
+pairFns f g (a, c) = Pair (f a) (g c)
 
 Tt : Int -> Type
 Tt _ = Pair String Int
@@ -19,8 +23,16 @@ record DepOptic (A, B : PolyObj) where
   constructor MkDepOptic
   res : Type
   f : (pos A) -> Pair res (pos B) -- f a : (res, pos B)
-  f' : {0 a : pos A} -> f a -> dir A a -- but this is a nice proxy to start with
-  -- f' : {0 a : pos A} -> pairFns (id {a = res}) (dir B) (f a) -> dir A a -- I want to get this working
+  f' : {0 a : pos A} -> DepOpticsV2.pairFns (\x => res) (dir B) (f a) -> dir A a
+
+-- Andre: This might be what you are looking for? It feels like it makes more sense than having a `const` function returning `res`
+-- This is the same as having an existential PolyObj
+record VarDepOptic (A, B : PolyObj) where
+  constructor MkVarDepOptic
+  res : Type
+  next : res -> Type
+  f : (pos A) -> Pair res (pos B)
+  f' : {0 a : pos A} -> pairFns next (dir B) (f a) -> dir A a
 
 assoc : (a, (b, c)) -> ((a, b), c)
 assoc (a, (b, c)) = ((a, b), c)
