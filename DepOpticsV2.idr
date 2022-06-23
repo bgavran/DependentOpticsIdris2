@@ -9,12 +9,18 @@ record PolyObj  where
 pairFns : (a -> b) -> (c -> d) -> Pair a c -> Pair b d
 pairFns f g (a, c) = (f a, g c)
 
+Tt : Int -> Type
+Tt _ = Pair String Int
+
+ff : Tt 3
+ff = ("abc", 3)
+
 record DepOptic (A, B : PolyObj) where
   constructor MkDepOptic
   res : Type
   f : (pos A) -> Pair res (pos B) -- f a : (res, pos B)
-  f' : {0 a : pos A} -> pairFns (id {a = res}) (dir B) (f a) -> dir A a -- I want to get this working
-  -- f' : {0 a : pos A} -> f a -> dir A a -- but this is a nice proxy to start with
+  f' : {0 a : pos A} -> f a -> dir A a -- but this is a nice proxy to start with
+  -- f' : {0 a : pos A} -> pairFns (id {a = res}) (dir B) (f a) -> dir A a -- I want to get this working
 
 assoc : (a, (b, c)) -> ((a, b), c)
 assoc (a, (b, c)) = ((a, b), c)
@@ -53,12 +59,5 @@ po2 = MkPolyObj Char (\x => Char)
   --         i = (rp . pairFns id dirB) . f
   --         j = i a
   --     in ?jj
-
-
-TT : Int -> Type
-TT _ = Pair String Int
-
-ff : TT 3
-ff = ("abc", 3)
 
 
