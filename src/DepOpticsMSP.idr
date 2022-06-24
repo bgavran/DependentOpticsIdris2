@@ -8,7 +8,7 @@ pairFns : (a -> b) -> (c -> d) -> Pair a c -> Pair b d
 pairFns f g (a, c) = (f a, g c)
 
 hancockProd : Cont -> Cont -> Cont
-hancockProd c1 c2 = MkCont (pos c1, pos c2) (\(pp, pp') => (dir c1 pp, dir c2 pp'))
+hancockProd c1 c2 = MkCont (pos c1, pos c2) (\px => (dir c1 (fst px), dir c2 (snd px)))
 
 record DLens (A, B : Cont) where
   constructor MkDLens
