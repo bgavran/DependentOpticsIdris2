@@ -16,7 +16,7 @@ authors = "Bruno Gavranovic"
 -- depends =
 
 -- modules to install
-modules = DepOpticsV2
+modules = DependentOptics
 
 -- main file (i.e. file to load at REPL)
 -- main =
