@@ -16,13 +16,13 @@ record Optic (A, A', B, B' : Type) where
   fw : A -> (B, res)
   bw : (res, B') -> A'
 
-gr : {A, B : Type} -> (A -> (B -> Type)) -> (A -> Type)
-gr res = \a => (b ** res a b)
+sigmaPi : {A, B : Type} -> (A -> (B -> Type)) -> Type
+sigmaPi res = (a : A) -> (b : B ** res a b)
 
 record DepOptic (A, B : Cont) where
   constructor MkDepOptic
   res : shp A -> (shp B -> Type)
-  fw : (a : shp A) -> gr res a
+  fw : sigmaPi res
   bw : {0 a : shp A} -> {0 b : shp B} -> res a b -> pos B b -> pos A a
 
 DepLensToDepOptic : {A, B : Cont} -> DepLens A B -> DepOptic A B
@@ -35,7 +35,7 @@ Const : Type -> Type -> Cont
 Const ty1 ty2 = MkCont ty1 (const ty2)
 
 OpticToDepOptic : {A, A', B, B' : Type} -> Optic A A' B B' -> DepOptic (Const A A') (Const B B')
-OpticToDepOptic (MkOptic res f f') = MkDepOptic (\_, _ => res) (\a => (fst (f a) ** snd (f a))) (curry f')
+OpticToDepOptic (MkOptic res f f') = MkDepOptic (\_, _ => res) ((\(b, r) => (b ** r)) . f) (curry f')
 
 compRes : {A, B, C : Type} -> (A -> (B -> Type)) -> (B -> (C -> Type)) -> (A -> (C -> Type))
 compRes r1 r2 = \a, c => (b : B ** (r1 a b, r2 b c))
