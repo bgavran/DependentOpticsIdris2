@@ -14,7 +14,6 @@ record DepLens (A, B : Cont) where
   fw : shp A -> shp B
   bw : (a : shp A) -> pos B (fw a) -> pos A a
 
-
 public export
 Const : Type -> Type -> Cont
 Const ty1 ty2 = MkCont ty1 (const ty2)

@@ -28,6 +28,3 @@ compDepOptic (MkDepOptic f f') (MkDepOptic g g') = MkDepOptic
              (c ** r2) = (fw g) b
          in (c ** b ** (r1, r2))))
   (\(b ** (mab, nbc)) => f' mab . g' nbc)
-
--- dup : (1 x : a) -> (a, a)
--- dup x = (x, ?r)
