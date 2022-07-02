@@ -1,20 +1,9 @@
 module DependentOptics
 
-record Cont where
-  constructor MkCont
-  shp : Type
-  pos : shp -> Type
-
-record DepLens (A, B : Cont) where
-  constructor MkDepLens
-  fw : shp A -> shp B
-  bw : (a : shp A) -> pos B (fw a) -> pos A a
-
-record Optic (A, A', B, B' : Type) where
-  constructor MkOptic
-  res : Type
-  fw : A -> (B, res)
-  bw : (res, B') -> A'
+import CartesianLenses
+import DependentLenses
+import Optics
+import CoPara
 
 sigmaPi : {A, B : Type} -> (A -> (B -> Type)) -> Type
 sigmaPi res = (a : A) -> (b : B ** res a b)
@@ -31,11 +20,11 @@ DepLensToDepOptic (MkDepLens f f') = MkDepOptic
   (\a => (f a ** (a  ** (Refl, Refl))))
   (\(a ** (p, q)) => rewrite q in rewrite p in f' a)
 
-Const : Type -> Type -> Cont
-Const ty1 ty2 = MkCont ty1 (const ty2)
-
 OpticToDepOptic : {A, A', B, B' : Type} -> Optic A A' B B' -> DepOptic (Const A A') (Const B B')
 OpticToDepOptic (MkOptic res f f') = MkDepOptic (\_, _ => res) ((\(b, r) => (b ** r)) . f) (curry f')
+
+CoParaToDepOptic : {A, B : Type} -> CoPara A B -> DepOptic (Const A ()) (Const B ())
+CoParaToDepOptic (MkCoPara m f) = MkDepOptic (\_, _ => m) ((\(b, r) => (b ** r)) . f) (\_, _ => ())
 
 compRes : {A, B, C : Type} -> (A -> (B -> Type)) -> (B -> (C -> Type)) -> (A -> (C -> Type))
 compRes r1 r2 = \a, c => (b : B ** (r1 a b, r2 b c))
@@ -47,3 +36,6 @@ compDepOptic (MkDepOptic m f f') (MkDepOptic n g g') = MkDepOptic
              (c ** r2) = g b
          in (c ** b ** (r1, r2)))
   (\(b ** (mab, nbc)) => f' mab . g' nbc)
+
+-- dup : (1 x : a) -> (a, a)
+-- dup x = (x, ?r)
