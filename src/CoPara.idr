@@ -7,6 +7,13 @@ record CoPara (A, B : Type) where
   f : A -> (B, res)
 
 public export
+graph : (a -> b) -> (a -> (b, a))
+graph f a = (f a, a)
+
+graphCoPara : {A, B : Type} -> (A -> B) -> CoPara A B
+graphCoPara f = MkCoPara A (graph f)
+
+public export
 sigmaPi : {A, B : Type} -> (A -> (B -> Type)) -> Type
 sigmaPi res = (a : A) -> (b : B ** res a b)
 
@@ -22,13 +29,12 @@ compRes r1 r2 = \a, c => (b : B ** (r1 a b, r2 b c))
 
 public export
 compDepCoPara : {A, B, C : Type} -> DepCoPara A B -> DepCoPara B C -> DepCoPara A C
-compDepCoPara (MkDepCoPara m f) (MkDepCoPara n g) = MkDepCoPara
-  (compRes m n)
-  (\a => let (b ** r1) = f a
-             (c ** r2) = g b
+compDepCoPara f g = MkDepCoPara
+  (compRes (res f) (res g))
+  (\a => let (b ** r1) = (fw f) a
+             (c ** r2) = (fw g) b
          in (c ** b ** (r1, r2)))
 
 public export
 CoParaToDepCoPara : {A, B : Type} -> CoPara A B -> DepCoPara A B
 CoParaToDepCoPara (MkCoPara m f) = MkDepCoPara (\_, _ => m) ((\(b, mm) => (b ** mm)) . f)
-

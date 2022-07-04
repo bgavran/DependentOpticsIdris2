@@ -11,9 +11,6 @@ record Optic (A, A', B, B' : Type) where
   fw : A -> (B, res)
   bw : (res, B') -> A'
 
-graph : (a -> b) -> (a -> (b, a))
-graph f a = (f a, a)
-
 CartLensToOptic : {A, A', B, B' : Type} -> CartLens A A' B B' -> Optic A A' B B'
 CartLensToOptic (MkCartLens f f') = MkOptic A (graph f) f'
 
