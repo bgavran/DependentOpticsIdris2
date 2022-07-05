@@ -37,13 +37,20 @@ ClosedDepLensToDepOptic (MkClosedDepLens f) = MkDepOptic
 
 ----------------------------------------
 
--- coproductMap : {A, B, Z : Cont} -> DepOptic A Z -> DepOptic B Z -> DepOptic (coproduct A B) Z
--- coproductMap (MkDepOptic (MkDepCoPara resl f) f') (MkDepOptic (MkDepCoPara resr g) g') = MkDepOptic
---   (MkDepCoPara
---     (\ab, z with ab
---       | L a = resl a z
---       | R b = resr b z)
---     (\ab => case ab of
---       L a => f a
---       R b => g b))
---   (\t, z' => ?bw)
+lemma : (A, B, Z : Cont) ->
+        (res1 : (A .shp -> Z .shp -> Type)) ->
+        ((a : A .shp) -> (b : Z .shp ** res1 a b)) ->
+        ((a : A .shp) -> (b : Z .shp) -> res1 a b -> Z .pos b -> A .pos a) ->
+        (res2 : (B .shp -> Z .shp -> Type)) ->
+        ((a : B .shp) -> (b : Z .shp ** res2 a b)) ->
+        ((a : B .shp) -> (b : Z .shp) -> res2 a b -> Z .pos b -> B .pos a) ->
+        (0 a : CoProduct (shp A) (shp B)) -> (0 b : shp Z) ->
+        elim res1 res2 a b -> Z .pos b -> elim (A .pos) (B .pos) a
+lemma c1 c2 c3 res1 f g res2 f1 g1 a b x y =
+  let v = elim' {c = c1.pos} {d = c2.pos} ?dd ?bb in ?lemma_rhs
+
+coproductMap : {A, B, Z : Cont} -> DepOptic A Z -> DepOptic B Z -> DepOptic (coproduct A B) Z
+coproductMap (MkDepOptic (MkDepCoPara res1 fw1) bw1) (MkDepOptic (MkDepCoPara res2 fw2) f2) = MkDepOptic
+  (MkDepCoPara (elim res1 res2) (\case L x => fw1 x
+                                       R x => fw2 x))
+  (lemma A B Z res1 fw1 (\_,_ => bw1) res2 fw2 (\_, _ => f2) _ _)

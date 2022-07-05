@@ -30,12 +30,21 @@ public export
 data CoProduct ty1 ty2 = L ty1 | R ty2
 
 public export
+elim : (a -> c) -> (b -> c) -> CoProduct a b -> c
+elim f g (L x) = f x
+elim f g (R x) = g x
+
+public export
+elim' : {0 c : a -> Type} -> {0 d : b -> Type} ->
+        (f : (x : a) -> c x) -> (g : (x : b) -> d x) -> (p : CoProduct a b) -> (DependentLenses.elim c d p)
+elim' f g (L x) = f x
+elim' f g (R x) = g x
+
+public export
 coproduct : Cont -> Cont -> Cont
 coproduct cont1 cont2 = MkCont
   (CoProduct (shp cont1) (shp cont2))
-  (\b => case b of
-      L s => (pos cont1) s
-      R s => (pos cont2) s)
+  (elim cont1.pos cont2.pos)
 
 coproductMap : {A, B, Z : Cont} -> DepLens A Z -> DepLens B Z -> DepLens (coproduct A B) Z
 coproductMap (MkDepLens f f') (MkDepLens g g') = MkDepLens
