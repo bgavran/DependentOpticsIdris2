@@ -1,48 +1,13 @@
-module DependentOptics
+module Optics.Dependent
 
-import CartesianLenses
-import DependentLenses
-import Coproduct
+import Optics.Plain
+import Data.Coproduct
+import Data.Container
+import Lens.Dependent
 import Optics
 import CoPara
 import Data.DPair
-
-B : Type
-B = (Type, Type)
-
-record CartesianOptic (a, b : B) where
-  constructor MkCatersianOptic
-  0 r : Type
-  fw : fst a -> (r, fst b)
-  bw : (r, snd b) -> snd a
-
-composeCartesian : CartesianOptic a b -> CartesianOptic b c -> CartesianOptic a c
-composeCartesian x y = MkCatersianOptic
-  (Pair x.r y.r)
-  (\a => let v = x.fw a; w = y.fw (snd v) in ((fst v, fst w), snd w))
-  (\case ((z, v), w) => x.bw (z , (y.bw (v, w))))
-
-
-record PlainOptics (Rel : Type -> Type -> Type) (a, b : B) where
-  constructor MkPlainOptic
-  0 r : Type
-  fw : fst a -> r `Rel` fst b
-  bw : r `Rel` snd b -> snd a
-
--- lenses
-composeCartesianOptics : PlainOptics Pair a b -> PlainOptics Pair b c -> PlainOptics Pair a c
-composeCartesianOptics x y = MkPlainOptic
-  (Pair x.r y.r)
-  (\a => let v = x.fw a; w = y.fw (snd v) in ((fst v, fst w), snd w))
-  (\case ((z, v), w) => x.bw (z , (y.bw (v, w))))
-
--- prisms
-composeCocartesianOptics :
-  PlainOptics (+) a b -> PlainOptics (+) b c -> PlainOptics (+) a c
-composeCocartesianOptics x y = MkPlainOptic
-  (x.r + y.r)
-  (elim (L . L) (mapFst R . y.fw) . x.fw)
-  (x.bw . elim (mapSnd (y.bw . L)) (R . y.bw . R ))
+import Data.Product
 
 public export
 record DepOptic (a, b : Cont) where

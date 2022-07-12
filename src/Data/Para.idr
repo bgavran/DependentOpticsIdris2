@@ -1,4 +1,4 @@
-module Para
+module Data.Para
 
 public export
 record Para (A, B : Type) where

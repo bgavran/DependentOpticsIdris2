@@ -1,4 +1,4 @@
-module Coproduct
+module Data.Coproduct
 
 import Data.DPair
 

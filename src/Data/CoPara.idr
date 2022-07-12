@@ -1,4 +1,4 @@
-module CoPara
+module Data.CoPara
 
 public export
 record CoPara (A, B : Type) where
