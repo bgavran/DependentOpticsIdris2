@@ -87,39 +87,37 @@ elimBimap f g x {y = (R y)} = g x
 0 elimBoth : {0 y : _} ->
              elim (\_ => r) (\_ => s) y = elim (\_ => p) (\_ => q) y
 
-backward : {0 a, b : B} -> {0 r : Type} ->
-           (r + (Builtin.snd b) -> Builtin.snd a) ->
-           (choice : Bool) ->
-           {0 pick : Choice choice r (Builtin.snd b)} ->
-           Elim (\_ => r) (\_ => snd b) choice {a=r} {b= snd b} pick -> snd a
-backward bw False = bw . R
-backward bw True = bw . L
-
-what : {0 b : (Type, Type)} ->
-       {0 a : (Type, Type)} ->
-       {0 r_0 : Type} ->
-       (r_0 + snd {a = Type} {b = Type} b -> snd {a = Type} {b = Type} a) ->
-       (fst {a = Type} {b = Type} a -> r_0 + fst {a = Type} {b = Type} b) ->
-       {0 x : fst {a = Type} {b = Type} a} ->
-       (choice : Bool) ->
-       {0 pick : Choice choice r_0 (fst {a = Type} {b = Type} b)} ->
-       Elim {b = fst {a = Type} {b = Type} b} {a = r_0} (\y : r_0 => r_0) (\value : fst {a = Type} {b = Type} b => snd {a = Type} {b = Type} b) choice pick ->
-       snd {a = Type} {b = Type} a
-
+-- Prisms embed into dependent prisms
 embedPrisms : PlainOptics (+) a b -> DepPrisms (MkCont (fst a) (const (snd a)))
                                                (MkCont (fst b) (const (snd b)))
 embedPrisms (MkPlainOptic r fw bw) = MkDepPrism
   (const r)
-  (\x, y => r)
+  (const (const r))
   (toChoice . fw)
-  (what bw fw)
+  (\case True => bw . L
+         False => bw . R)
 
--- composePrism : DepPrisms a b -> DepPrisms b c -> DepPrisms a c
--- composePrism (MkDepPrism r1 r1' fw1 bw1) (MkDepPrism r2 r2' fw2 bw2) = MkDepPrism
---   (\x => (r1 x) + (y : b.shp ** r2 y))
---   (\x => ?prismRes2)
---   ?prismFw
---   ?prismbw
+composeDepPrisms : DepPrisms a b -> DepPrisms b c -> DepPrisms a c
+composeDepPrisms (MkDepPrism r1 r1' fw1 bw1) (MkDepPrism r2 r2' fw2 bw2) = MkDepPrism
+  -- The composition of two dependent prisms has a coproduct as residual
+  -- indicating which residual was taken, L if it comes from the first
+  -- prism, R if it comes from the second prism
+  (\x => r1 x + Exists r2)
+  -- (\x => elim (r1' x) (\(Evidence a b) => r2' a b))
+  (\x => \y => r1' x ?ss + ?w)--elim (r1' x) (\(Evidence a b) => r2' a b))
+  -- Attempt the forward part of the first lens
+  (\x => case fw1 x of
+      -- if we succeed and get a value of type `b.shp` then we apply it to the fw
+      -- of the second lens
+      (False ** bVal) => case fw2 bVal of
+          -- If the second lens succeeds we return a value of type `c.shp`
+          ((False ** cVal)) => (False ** cVal)
+          -- Otherwise we return a residual of type `Exists r2`
+          ((True ** residual)) => (True ** R (Evidence bVal residual))
+      -- If the first lens fails we return its residual
+      (True ** residual) => (True ** L residual))
+  (\case True => \x => ?qwqe2
+         False => \cVal => bw1 False (bw2 False cVal))
 
 record GenOptics
   (Rel : Type -> Type -> Type)

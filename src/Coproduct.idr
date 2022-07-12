@@ -1,5 +1,7 @@
 module Coproduct
 
+import Data.DPair
+
 public export
 data (+) x y = L x | R y
 
@@ -7,6 +9,15 @@ public export
 Choice : Bool -> Type -> Type -> Type
 Choice True a b = a
 Choice False a b = b
+
+public export
+Choice' : Bool -> a -> b -> a + b
+Choice' True a b = L a
+Choice' False a b = R b
+
+public export
+0 DSum : (a : Type) -> (a -> Type) -> Type
+DSum a f = Exists $ \x : a => Subset a (\y => x = y) + f x
 
 public export
 sym : a + b -> b + a
