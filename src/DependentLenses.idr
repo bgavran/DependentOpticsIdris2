@@ -1,6 +1,7 @@
 module DependentLenses
 
 import CartesianLenses
+import Coproduct
 
 public export
 record Cont where
@@ -9,10 +10,10 @@ record Cont where
   pos : shp -> Type
 
 public export
-record DepLens (A, B : Cont) where
+record DepLens (a, b : Cont) where
   constructor MkDepLens
-  fw : shp A -> shp B
-  bw : (a : shp A) -> pos B (fw a) -> pos A a
+  fw : a.shp -> b.shp
+  bw : (x : a.shp) -> b.pos (fw x) -> a.pos x
 
 public export
 Const : Type -> Type -> Cont
@@ -27,23 +28,9 @@ record ClosedDepLens (A, B : Cont) where
   f : (a : shp A) -> (b : shp B ** pos B b -> pos A a)
 
 public export
-data CoProduct ty1 ty2 = L ty1 | R ty2
-
-public export
-elim : (a -> c) -> (b -> c) -> CoProduct a b -> c
-elim f g (L x) = f x
-elim f g (R x) = g x
-
-public export
-elim' : {0 c : a -> Type} -> {0 d : b -> Type} ->
-        (f : (x : a) -> c x) -> (g : (x : b) -> d x) -> (p : CoProduct a b) -> (DependentLenses.elim c d p)
-elim' f g (L x) = f x
-elim' f g (R x) = g x
-
-public export
 coproduct : Cont -> Cont -> Cont
 coproduct cont1 cont2 = MkCont
-  (CoProduct (shp cont1) (shp cont2))
+  ((shp cont1) + (shp cont2))
   (elim cont1.pos cont2.pos)
 
 coproductMap : {A, B, Z : Cont} -> DepLens A Z -> DepLens B Z -> DepLens (coproduct A B) Z

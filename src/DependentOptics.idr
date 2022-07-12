@@ -2,20 +2,150 @@ module DependentOptics
 
 import CartesianLenses
 import DependentLenses
+import Coproduct
 import Optics
 import CoPara
+import Data.DPair
+
+B : Type
+B = (Type, Type)
+
+record CartesianOptic (a, b : B) where
+  constructor MkCatersianOptic
+  0 r : Type
+  fw : fst a -> (r, fst b)
+  bw : (r, snd b) -> snd a
+
+composeCartesian : CartesianOptic a b -> CartesianOptic b c -> CartesianOptic a c
+composeCartesian x y = MkCatersianOptic
+  (Pair x.r y.r)
+  (\a => let v = x.fw a; w = y.fw (snd v) in ((fst v, fst w), snd w))
+  (\case ((z, v), w) => x.bw (z , (y.bw (v, w))))
+
+
+record PlainOptics (Rel : Type -> Type -> Type) (a, b : B) where
+  constructor MkPlainOptic
+  0 r : Type
+  fw : fst a -> r `Rel` fst b
+  bw : r `Rel` snd b -> snd a
+
+-- lenses
+composeCartesianOptics : PlainOptics Pair a b -> PlainOptics Pair b c -> PlainOptics Pair a c
+composeCartesianOptics x y = MkPlainOptic
+  (Pair x.r y.r)
+  (\a => let v = x.fw a; w = y.fw (snd v) in ((fst v, fst w), snd w))
+  (\case ((z, v), w) => x.bw (z , (y.bw (v, w))))
+
+-- prisms
+composeCocartesianOptics :
+  PlainOptics (+) a b -> PlainOptics (+) b c -> PlainOptics (+) a c
+composeCocartesianOptics x y = MkPlainOptic
+  (x.r + y.r)
+  (elim (L . L) (mapFst R . y.fw) . x.fw)
+  (x.bw . elim (mapSnd (y.bw . L)) (R . y.bw . R ))
 
 public export
-record DepOptic (A, B : Cont) where
+record DepOptic (a, b : Cont) where
   constructor MkDepOptic
-  fw : DepCoPara (shp A) (shp B)
-  bw : {0 a : shp A} -> {0 b : shp B} -> (res fw) a b -> pos B b -> pos A a
+  fw : a.shp -> b.shp
+  0 res : a.shp -> b.shp -> Type
+  bw : {0 x : a.shp} -> {0 y : b.shp} -> res x y -> b.pos y -> a.pos x
 
-compDepOptic : {A, B, C : Cont} -> DepOptic A B -> DepOptic B C -> DepOptic A C
+embedIntoDepOptics : DepLens a b -> DepOptic a b
+embedIntoDepOptics ls = MkDepOptic
+  (fw ls)
+  (\x, y => (aRes : a.shp ** (aRes = x, fw ls x = y)))
+  (\(k ** (p1, p2)), y => let v = ls.bw k (rewrite p1 in rewrite p2 in y) in rewrite sym p1 in v)
+
+compDepOptic : {a, b, c : Cont} -> DepOptic a b -> DepOptic b c -> DepOptic a c
 compDepOptic f g = MkDepOptic
-  (compDepCoPara (fw f) (fw g))
-  (\(_ ** (mab, nbc)) => (bw f) mab . (bw g) nbc)
+  (g.fw . f.fw)
+  (\x, y => (v : b.shp ** (f.res x v, g.res v y)))
+  (\(x ** (p1, p2)), y => f.bw p1 (g.bw p2 y))
 
+record DepPrisms (a, b : Cont) where
+  constructor MkDepPrism
+  0 r : a.shp -> Type
+  0 r' : (x : a.shp) -> r x -> Type
+  fw : (x : a.shp) -> (choice : Bool ** Choice choice (r x) b.shp)
+  bw : {0 x : a.shp} -> (choice : Bool) -> {0 pick : Choice choice (r x) b.shp} ->
+       Elim (r' x) b.pos choice pick -> a.pos x
+
+mapElim : {y : _} -> elim (\_ => c) (\_ => d) y -> c + d
+mapElim x {y = (L y)} = L x
+mapElim x {y = (R y)} = R x
+
+0 collapseElim : {0 y : _ } -> elim (\_ => a) (\_ => a) y = a
+collapseElim {y = (L x)} = Refl
+collapseElim {y = (R x)} = Refl
+
+elimBimap : {y : _} ->
+            (r -> p) -> (s -> q) -> elim (\_ => r) (\_ => s) y -> elim (\_ => p) (\_ => q) y
+elimBimap f g x {y = (L y)} = f x
+elimBimap f g x {y = (R y)} = g x
+
+0 elimBoth : {0 y : _} ->
+             elim (\_ => r) (\_ => s) y = elim (\_ => p) (\_ => q) y
+
+backward : {0 a, b : B} -> {0 r : Type} ->
+           (r + (Builtin.snd b) -> Builtin.snd a) ->
+           (choice : Bool) ->
+           {0 pick : Choice choice r (Builtin.snd b)} ->
+           Elim (\_ => r) (\_ => snd b) choice {a=r} {b= snd b} pick -> snd a
+backward bw False = bw . R
+backward bw True = bw . L
+
+what : {0 b : (Type, Type)} ->
+       {0 a : (Type, Type)} ->
+       {0 r_0 : Type} ->
+       (r_0 + snd {a = Type} {b = Type} b -> snd {a = Type} {b = Type} a) ->
+       (fst {a = Type} {b = Type} a -> r_0 + fst {a = Type} {b = Type} b) ->
+       {0 x : fst {a = Type} {b = Type} a} ->
+       (choice : Bool) ->
+       {0 pick : Choice choice r_0 (fst {a = Type} {b = Type} b)} ->
+       Elim {b = fst {a = Type} {b = Type} b} {a = r_0} (\y : r_0 => r_0) (\value : fst {a = Type} {b = Type} b => snd {a = Type} {b = Type} b) choice pick ->
+       snd {a = Type} {b = Type} a
+
+embedPrisms : PlainOptics (+) a b -> DepPrisms (MkCont (fst a) (const (snd a)))
+                                               (MkCont (fst b) (const (snd b)))
+embedPrisms (MkPlainOptic r fw bw) = MkDepPrism
+  (const r)
+  (\x, y => r)
+  (toChoice . fw)
+  (what bw fw)
+
+-- composePrism : DepPrisms a b -> DepPrisms b c -> DepPrisms a c
+-- composePrism (MkDepPrism r1 r1' fw1 bw1) (MkDepPrism r2 r2' fw2 bw2) = MkDepPrism
+--   (\x => (r1 x) + (y : b.shp ** r2 y))
+--   (\x => ?prismRes2)
+--   ?prismFw
+--   ?prismbw
+
+record GenOptics
+  (Rel : Type -> Type -> Type)
+  (El : {a, b : Type} -> (a -> Type) -> (b -> Type) -> Rel a b -> Type)
+  (a, b : Cont) where
+  constructor MkGen
+  0 r : a.shp -> Type
+  0 r' : (x : a.shp) -> r x -> Type
+  fw : (x : a.shp) -> (b.shp `Rel` r x)
+  bw : {0 x : a.shp} -> {0 y : b.shp `Rel` r x} -> El b.pos (r' x) y -> a.pos x
+
+CoSum : (a -> Type) -> (b -> Type) -> (a, b) -> Type
+CoSum f g x = Pair (f (fst x)) (g (snd x))
+
+embedDLens : DepOptic a b -> GenOptics Prelude.const (\f, g, x => f x) a b
+embedDLens (MkDepOptic fw res bw) = MkGen
+  (\x => b.shp)
+  (\x, y => (v : a.shp ** (v = x, fw x = y)))
+  (\x => fw x)
+  (\x => ?bwww)
+
+composeGen : {rel : Type -> Type -> Type} -> {e : {a, b, c : Type} -> (a -> c) -> (b -> c) -> rel a b -> c} ->
+             GenOptics rel e a b -> GenOptics rel e b c -> GenOptics rel e a c
+
+
+{-
 ----------------------------------------
 -- Embeddings of other kinds of lenses/optics into dependent optics
 ----------------------------------------
@@ -47,7 +177,8 @@ lemma : (A, B, Z : Cont) ->
         (0 a : CoProduct (shp A) (shp B)) -> (0 b : shp Z) ->
         elim res1 res2 a b -> Z .pos b -> elim (A .pos) (B .pos) a
 lemma c1 c2 c3 res1 f g res2 f1 g1 a b x y =
-  let v = elim' {c = c1.pos} {d = c2.pos} ?dd ?bb in ?lemma_rhs
+  let
+      v = elim' {c = c1.pos} {d = c2.pos} (\w => ?dd) ?bb in ?lemma_rhs
 
 coproductMap : {A, B, Z : Cont} -> DepOptic A Z -> DepOptic B Z -> DepOptic (coproduct A B) Z
 coproductMap (MkDepOptic (MkDepCoPara res1 fw1) bw1) (MkDepOptic (MkDepCoPara res2 fw2) f2) = MkDepOptic
