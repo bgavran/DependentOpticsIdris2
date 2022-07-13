@@ -57,34 +57,22 @@ record DepCoParaCoCart (A, B : Type) where
 -- General Dependent CoPara
 --------------------------------------------------
 
-sigmaPiGen : {A, B : Type} -> (A -> (B -> Type)) -> (Type -> Type -> Type) -> Type
-sigmaPiGen res monProd = (a : A) -> monProd B (Konst B (res a))
-
-public export
-lemma1 : (A, B : Type) -> (res : Type) -> sigmaPiGen (\_, _ => res) Either = (A -> Either B (Konst B (\_ => res)))
-
-public export
-lemma2 : (A, B : Type) -> (res : A -> B -> Type) -> (monProd : Type -> Type -> Type) ->  ((a : A) -> monProd B (Konst B (res a))) = sigmaPiGen res monprod
-
-sigmaPiGen2 : {A, B : Type} -> (A -> (B -> Type)) -> ((x : Type) -> (x -> Type) -> Type) -> Type
-sigmaPiGen2 res monProd = (a : A) -> monProd B (res a)
-
 public export
 record DepCoPara (A, B : Type) (monProd : Type -> Type -> Type) where
   constructor MkDepCoPara
   res : A -> (B -> Type)
-  fw : sigmaPiGen res monProd
+  fw : (a : A) -> monProd B (Exists {type=B} (res a))
 
-CoParaToDepCoParaAllCart : {A, B : Type} -> CoPara A B (,) -> DepCoPara A B (,)
-CoParaToDepCoParaAllCart (MkCoPara res f) = MkDepCoPara
-  (\_, _ => res)
-  ((\(b, r) => (b, IsKonst r)) . f)
+--CoParaToDepCoParaAllCart : {A, B : Type} -> CoPara A B (,) -> DepCoPara A B (,)
+--CoParaToDepCoParaAllCart (MkCoPara res f) = MkDepCoPara
+--  (\_, _ => res)
+--  ((\(b, r) => (b, ?fl)) . f)
 
-CoParaToDepCoParaAllCoCart : {A, B : Type} -> CoPara A B Either -> DepCoPara A B Either
-CoParaToDepCoParaAllCoCart (MkCoPara res f) = MkDepCoPara
-   (\_, _ => res)
-   ((\case (Left b) => Left b
-           (Right r) => Right (IsKonst r)) . f)
+-- CoParaToDepCoParaAllCoCart : {A, B : Type} -> CoPara A B Either -> DepCoPara A B Either
+-- CoParaToDepCoParaAllCoCart (MkCoPara res f) = MkDepCoPara
+--    (\_, _ => res)
+--    ((\case (Left b) => Left b
+--            (Right r) => Right (IsKonst r)) . f)
 
 --------------------------------------------------
 -- Composition
