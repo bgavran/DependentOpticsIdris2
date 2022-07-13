@@ -6,6 +6,7 @@ import Optics
 import CoPara
 import Utils
 import Data.DPair
+import Data.Exists
 
 public export
 record DepOpticCart (A, B : Cont) where
@@ -33,13 +34,19 @@ record DepOptic (A, B : Cont) (monProd : Type -> Type -> Type) where
 --  b
 
 
-compDepPrisms : {A, B, C : Cont} -> DepOptic A B Either -> DepOptic B C Either -> DepOptic A C Either
+compDepPrisms : {A, B, C : Cont}
+             -> DepOptic A B Either
+             -> DepOptic B C Either
+             -> DepOptic A C Either
 compDepPrisms (MkDepOptic (MkDepCoPara r f) f') (MkDepOptic (MkDepCoPara s g) g') = MkDepOptic
-  (MkDepCoPara (compRes r s) (\a => case f a of
-                                      (Left b) => case g b of
-                                                 (Left c) => Left c
-                                                 (Right s) => Right (Evidence ?ff ?ss)
-                                      (Right r) => ?rrr ))
+  (MkDepCoPara (compRes' r s) (\a => case f a of
+     (Left b) => case g b of
+                (Left c) => Left c
+                (Right (Ev s)) => Right (Ev (\x =>
+                    (Evidence x (let (Evidence p y ** ys) = s x
+                                  in (b ** Right (rewrite sym ys in y)))
+                    ** Refl)))
+     (Right (Ev r)) => Right ?sadasd)) -- problem here, we need Exists' B
   ?bw
 
 

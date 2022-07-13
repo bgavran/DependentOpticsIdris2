@@ -2,6 +2,7 @@ module CoPara
 
 import Utils
 import Data.DPair
+import Data.Exists
 
 --------------------------------------------------
 
@@ -61,7 +62,7 @@ public export
 record DepCoPara (A, B : Type) (monProd : Type -> Type -> Type) where
   constructor MkDepCoPara
   res : A -> (B -> Type)
-  fw : (a : A) -> monProd B (Exists {type=B} (res a))
+  fw : (a : A) -> monProd B (Exists' B (res a))
 
 --CoParaToDepCoParaAllCart : {A, B : Type} -> CoPara A B (,) -> DepCoPara A B (,)
 --CoParaToDepCoParaAllCart (MkCoPara res f) = MkDepCoPara
@@ -81,6 +82,10 @@ record DepCoPara (A, B : Type) (monProd : Type -> Type -> Type) where
 public export
 compRes : {A, B, C : Type} -> (A -> (B -> Type)) -> (B -> (C -> Type)) -> (A -> (C -> Type))
 compRes r1 r2 = \a, c => (b : B ** (r1 a b, r2 b c))
+
+public export
+compRes' : {A, B, C : Type} -> (A -> (B -> Type)) -> (B -> (C -> Type)) -> (A -> (C -> Type))
+compRes' r1 r2 = \a, c => (b : B ** Either (r1 a b) (r2 b c))
 
 public export
 compDepCoParaCart : {A, B, C : Type} -> DepCoParaCart A B -> DepCoParaCart B C -> DepCoParaCart A C
