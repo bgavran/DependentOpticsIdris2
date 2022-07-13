@@ -29,6 +29,18 @@ record ClosedDepLens (A, B : Cont) where
 public export
 data CoProduct ty1 ty2 = L ty1 | R ty2
 
+copr : Type -> Type -> Bool -> Type
+copr ty1 ty2 False = ty1
+copr ty1 ty2 True = ty2
+
+-- copr' : (ty1, ty2 : Type) -> (b : Bool ** copr ty1 ty2 b)
+-- copr' = ?ll
+
+public export
+coproductPair : (a -> c) -> (b -> d) -> CoProduct a b -> CoProduct c d
+coproductPair f g (L l) = L (f l)
+coproductPair f g (R r) = R (g r)
+
 public export
 elim : (a -> c) -> (b -> c) -> CoProduct a b -> c
 elim f g (L x) = f x
@@ -41,12 +53,12 @@ elim' f g (L x) = f x
 elim' f g (R x) = g x
 
 public export
-coproduct : Cont -> Cont -> Cont
-coproduct cont1 cont2 = MkCont
-  (CoProduct (shp cont1) (shp cont2))
+coproductCont : Cont -> Cont -> Cont
+coproductCont cont1 cont2 = MkCont
+  (CoProduct cont1.shp cont2.shp)
   (elim cont1.pos cont2.pos)
 
-coproductMap : {A, B, Z : Cont} -> DepLens A Z -> DepLens B Z -> DepLens (coproduct A B) Z
+coproductMap : {A, B, Z : Cont} -> DepLens A Z -> DepLens B Z -> DepLens (coproductCont A B) Z
 coproductMap (MkDepLens f f') (MkDepLens g g') = MkDepLens
   (\ab => case ab of
     L a => f a
