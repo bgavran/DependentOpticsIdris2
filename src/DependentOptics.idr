@@ -4,6 +4,7 @@ import CartesianLenses
 import DependentLenses
 import Optics
 import CoPara
+import Utils
 
 public export
 record DepOpticCart (A, B : Cont) where
@@ -22,13 +23,19 @@ public export
 record DepOptic (A, B : Cont) (monProd : Type -> Type -> Type) where
   constructor MkDepOptic
   fw : DepCoPara (shp A) (shp B) monProd
-  bw : {0 a : shp A} -> {0 b : shp B} -> (res fw) a b -> pos B b -> pos A a
+  bw : {0 a : shp A} -> {0 b : shp B} -> monProd ((res fw) a b) (pos B b) -> pos A a
 
 
 PrismToDepOptic : {A, A', B, B' : Type} -> Optic A A' B B' Either -> DepOptic (Const A A') (Const B B') Either
 PrismToDepOptic (MkOptic res f b) = MkDepOptic
-  (MkDepCoPara (\_, _ => res) (replace {p=id} (sym $ lemma1 A B res) (\a => ?fw)))
+  (MkDepCoPara (\_, _ => res) (replace {p=id} (sym $ lemma1 A B res) (mapSnd IsKonst . f)))
+  b
+
+compDepOptics : {A, B, C : Cont} -> (monProd : Type -> Type -> Type) -> DepOptic A B monProd -> DepOptic B C monProd -> DepOptic A C monProd
+compDepOptics monProd (MkDepOptic (MkDepCoPara r f) f') (MkDepOptic (MkDepCoPara s g) g') = MkDepOptic
+  (MkDepCoPara (compRes r s) (replace {p=id} (lemma2 (shp A) (shp C) (compRes r s) monProd) (\a => ?fw)))
   ?bw
+
 
 {-
 ----------------------------------------

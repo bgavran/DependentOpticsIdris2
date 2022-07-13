@@ -53,7 +53,6 @@ record DepCoParaCoCart (A, B : Type) where
   res : A -> (B -> Type)
   fw : sigmaPiCoProd res
 
-
 --------------------------------------------------
 -- General Dependent CoPara
 --------------------------------------------------
@@ -63,6 +62,9 @@ sigmaPiGen res monProd = (a : A) -> monProd B (Konst B (res a))
 
 public export
 lemma1 : (A, B : Type) -> (res : Type) -> sigmaPiGen (\_, _ => res) Either = (A -> Either B (Konst B (\_ => res)))
+
+public export
+lemma2 : (A, B : Type) -> (res : A -> B -> Type) -> (monProd : Type -> Type -> Type) ->  ((a : A) -> monProd B (Konst B (res a))) = sigmaPiGen res monprod
 
 sigmaPiGen2 : {A, B : Type} -> (A -> (B -> Type)) -> ((x : Type) -> (x -> Type) -> Type) -> Type
 sigmaPiGen2 res monProd = (a : A) -> monProd B (res a)
