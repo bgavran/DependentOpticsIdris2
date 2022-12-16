@@ -5,6 +5,9 @@ record Cat where
   obj : Type
   arr : obj -> obj -> Type
 
+opCat : Cat -> Cat
+opCat c = MkCat c.obj (flip c.arr)
+
 TypeCat : Cat
 TypeCat = MkCat Type (\a, b => a -> b)
 
@@ -36,7 +39,7 @@ IndFam : IndCat TypeCat
 IndFam = MkIndCat FamCat (\a, b, c => b (a c))
 
 DepCartAction : DepAct TypeCat
-DepCartAction = MkDepAct IndFam DPair
+DepCartAction = MkDepAct IndFam DPair -- action is just forming the dependent pair
 
 record DepCoPara (c : Cat) (m : DepAct c) (A, B : c.obj) where
   constructor MkDepCoPara
@@ -58,12 +61,17 @@ record OverDepAct (c : Cat) (m : DepAct c) (d : IndCat c) where
   constructor MkOverDepAct
   actt : (x : c.obj) -> (p : (m.bund.mapObj x).obj) -> (x' : (d.mapObj x).obj) -> (d.mapObj (m.act x p)).obj
 
+
+fibOp : (c : Cat) -> IndCat c -> IndCat c
+fibOp c ic = MkIndCat (opCat . ic.mapObj) ic.mapMor
+
 -- forgetting A ??? :bomb:
 groth : (c : Cat) -> IndCat c -> Cat
 groth c indcat = MkCat
   (x : c.obj ** (indcat.mapObj x).obj)
-  (\x, y => (g : c.arr x.fst y.fst ** (indcat.mapObj x.fst).arr ((indcat.mapMor g) y.snd) x.snd))
+  (\x, y => (g : c.arr x.fst y.fst ** (indcat.mapObj x.fst).arr x.snd (indcat.mapMor g y.snd) ))
   --(\(x ** x'), (y ** y') => (g : c.arr x y ** (indcat.mapObj x).arr ((indcat.mapMor g) y') x'))
+
 
 forgett : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c) -> OverDepAct c m d -> DepAct (groth c d)
 forgett c m d doa = MkDepAct
@@ -71,11 +79,11 @@ forgett c m d doa = MkDepAct
   (\(x ** x'), x'' => (m.act x x'' ** doa.actt x x'' x') )
 
 
-DependentOptics : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c) -> (over : OverDepAct c m d)
-               -> (x : c.obj) -> (x' : (d.mapObj x).obj)
-               -> (y : c.obj) -> (y' : (d.mapObj y).obj)
+DependentOptics : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c) -> (over : OverDepAct c m (fibOp c d))
+               -> (x : c.obj) -> (x' : ((fibOp c d).mapObj x).obj)
+               -> (y : c.obj) -> (y' : ((fibOp c d).mapObj y).obj)
                -> Type
-DependentOptics c m d over x x' y y' = DepCoPara (groth c d) (forgett c m d over) (x ** x') (y ** y')
+DependentOptics c m d over x x' y y' = DepCoPara (groth c (fibOp c d)) (forgett c m (fibOp c d) over) (x ** x') (y ** y')
 
 -- x  -> y
 -- x' <- y'
@@ -88,6 +96,20 @@ record Cont where
   pos : Type
   dir : pos -> Type
 
+
+DepCartesianOptics : Cont -> Cont -> Type
+DepCartesianOptics (MkCont a a') (MkCont b b') = DependentOptics
+  TypeCat
+  DepCartAction
+  IndFam
+  (MkOverDepAct (\x, p, x', dp => ?ll))
+  a
+  a'
+  b
+  b'
+
+
+{-
 ContMor : Cont -> Cont -> Type
 ContMor (MkCont p1 d1) (MkCont p2 d2) =
   DependentOptics TypeCat DepCartAction IndFam ?o ?p1 ?d1 ?p2 ?d2
@@ -95,8 +117,6 @@ ContMor (MkCont p1 d1) (MkCont p2 d2) =
 testOptic : CartesianOptics (a, b) (a', b) a a'
 testOptic = MkDepCoPara (a, b) (MkDPair (\p => (fst p, p)) (\x => (snd x, snd (fst x))))
 
--- ff : (A : Type) -> (B : A -> Type) -> Type
--- ff a f = (x : a ** f x)
 
 
 
