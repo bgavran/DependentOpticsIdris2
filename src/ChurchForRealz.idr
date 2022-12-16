@@ -8,10 +8,11 @@ record Cat where
 Functor : Cat -> Cat -> Type
 Functor c d = c.obj -> d.obj
 
+-- C^op -> Cat
 record IndCat (c : Cat) where
   constructor MkIndCat
   mapObj : c.obj -> Cat
-  mapMor : {x, y : c.obj} -> c.arr x y -> Functor (mapObj x) (mapObj y)
+  mapMor : {x, y : c.obj} -> c.arr x y -> Functor (mapObj y) (mapObj x)
 
 record DepAct (c : Cat) where
   constructor MkDepAct
@@ -41,12 +42,21 @@ record OverDepAct (c : Cat) (m : DepAct c) (d : IndCat c) where
   constructor MkOverDepAct
   actt : (x : c.obj) -> (p : (m.bund.mapObj x).obj) -> (x' : (d.mapObj x).obj) -> (d.mapObj (m.act x p)).obj
 
+-- forgetting A ??? :bomb:
+groth : (c : Cat) -> IndCat c -> Cat
+groth c indcat = MkCat
+  (x : c.obj ** (indcat.mapObj x).obj)
+  (\x, y => (g : c.arr x.fst y.fst ** (indcat.mapObj x.fst).arr ((indcat.mapMor g) y.snd) x.snd))
+  --(\(x ** x'), (y ** y') => (g : c.arr x y ** (indcat.mapObj x).arr ((indcat.mapMor g) y') x'))
 
-groth : (c : Cat ** IndCat c) -> Cat
-groth (c ** f) = MkCat
-  (x : c.obj ** (f.mapObj x).obj)
-  (\(x ** x'), (y ** y') => (f : c.arr x y ** ?aa))
+forgett : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c) -> OverDepAct c m d -> DepAct (groth c d)
+forgett c m d doa = MkDepAct
+  (MkIndCat (\x => m.bund.mapObj x.fst) (\(f ** f') => m.bund.mapMor f))
+  (\(x ** x'), x'' => (m.act x x'' ** doa.actt ?ee ?rr ?tt) )
 
+
+-- ff : (A : Type) -> (B : A -> Type) -> Type
+-- ff a f = (x : a ** f x)
 
 
 
