@@ -11,7 +11,7 @@ Functor c d = c.obj -> d.obj
 record IndCat (c : Cat) where
   constructor MkIndCat
   mapObj : c.obj -> Cat
-  -- mapMor : {x, y : c.obj} -> c.arr x y -> Functor (mapObj x) (mapObj y)
+  mapMor : {x, y : c.obj} -> c.arr x y -> Functor (mapObj x) (mapObj y)
 
 record DepAct (c : Cat) where
   constructor MkDepAct
@@ -29,7 +29,9 @@ TypeCat : Cat
 TypeCat = MkCat Type (\a, b => a -> b)
 
 CartAction : DepAct TypeCat
-CartAction = MkDepAct (MkIndCat (\_ => TypeCat)) (,)
+CartAction = MkDepAct
+  (MkIndCat (\_ => TypeCat) (\_ => id))
+  (,)
 
 graphCartCoPara : {A, B : Type} -> (A -> B) -> DepCoPara TypeCat CartAction A B
 graphCartCoPara f = MkDepCoPara A (\a => (f a, a))
