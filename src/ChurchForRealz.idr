@@ -5,6 +5,19 @@ record Cat where
   obj : Type
   arr : obj -> obj -> Type
 
+TypeCat : Cat
+TypeCat = MkCat Type (\a, b => a -> b)
+
+FamCatOld : Cat
+FamCatOld = MkCat
+  (A : Type ** A -> Type)
+  (\(a ** a'), (b ** b') => (f : a -> b ** (x : a) -> a' x -> b' (f x)))
+
+FamCat : Type -> Cat
+FamCat a = MkCat
+  (a -> Type)
+  (\a', b' => (x : a) -> a' x -> b' x)
+
 Functor : Cat -> Cat -> Type
 Functor c d = c.obj -> d.obj
 
@@ -19,15 +32,18 @@ record DepAct (c : Cat) where
   bund : IndCat c
   act : (x : c.obj) -> (bund.mapObj x).obj -> c.obj
 
+IndFam : IndCat TypeCat
+IndFam = MkIndCat FamCat (\a, b, c => b (a c))
+
+DepCartAction : DepAct TypeCat
+DepCartAction = MkDepAct IndFam DPair
+
 record DepCoPara (c : Cat) (m : DepAct c) (A, B : c.obj) where
   constructor MkDepCoPara
   0 M : (m.bund.mapObj B).obj
   f : c.arr A (m.act B M)
 
 -- Example Type is a Cat
-
-TypeCat : Cat
-TypeCat = MkCat Type (\a, b => a -> b)
 
 CartAction : DepAct TypeCat
 CartAction = MkDepAct
@@ -52,8 +68,32 @@ groth c indcat = MkCat
 forgett : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c) -> OverDepAct c m d -> DepAct (groth c d)
 forgett c m d doa = MkDepAct
   (MkIndCat (\x => m.bund.mapObj x.fst) (\(f ** f') => m.bund.mapMor f))
-  (\(x ** x'), x'' => (m.act x x'' ** doa.actt ?ee ?rr ?tt) )
+  (\(x ** x'), x'' => (m.act x x'' ** doa.actt x x'' x') )
 
+
+DependentOptics : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c) -> (over : OverDepAct c m d)
+               -> (x : c.obj) -> (x' : (d.mapObj x).obj)
+               -> (y : c.obj) -> (y' : (d.mapObj y).obj)
+               -> Type
+DependentOptics c m d over x x' y y' = DepCoPara (groth c d) (forgett c m d over) (x ** x') (y ** y')
+
+-- x  -> y
+-- x' <- y'
+CartesianOptics : (x, x', y, y' : Type) -> Type
+CartesianOptics x x' y y' = DependentOptics TypeCat CartAction (MkIndCat (\_ => TypeCat) (\_ => id))
+  (MkOverDepAct (\z => \p => \w => Pair p w)) x x' y y'
+
+record Cont where
+  constructor MkCont
+  pos : Type
+  dir : pos -> Type
+
+ContMor : Cont -> Cont -> Type
+ContMor (MkCont p1 d1) (MkCont p2 d2) =
+  DependentOptics TypeCat DepCartAction IndFam ?o ?p1 ?d1 ?p2 ?d2
+
+testOptic : CartesianOptics (a, b) (a', b) a a'
+testOptic = MkDepCoPara (a, b) (MkDPair (\p => (fst p, p)) (\x => (snd x, snd (fst x))))
 
 -- ff : (A : Type) -> (B : A -> Type) -> Type
 -- ff a f = (x : a ** f x)
@@ -85,23 +125,12 @@ forgett c m d doa = MkDepAct
 
 {-
 
-FamCat : Cat
-FamCat = MkCat
-  (A : Type ** A -> Type)
-  (\(a ** a'), (b ** b') => (f : a -> b ** (x : a) -> a' x -> b' (f x)))
 
 SliceCat : Type -> Cat
 SliceCat a = MkCat
   (x : Type ** x -> a)
   (\(x ** p), (y ** q) => x -> y) -- missing proof that triangle commutes
 
-IndCat : Type -> Cat
-IndCat a = MkCat
-  (a -> Type)
-  (\a', b' => (x : a) -> a' x -> b' x)
-
-DepCartAction : DepAct TypeCat
-DepCartAction = MkDepAct IndCat (\x, f => (y : x ** f y))
 
 graphDepCoPara : {A : Type} -> {B : A -> Type} -> ((a : A) -> B a) -> DepCoPara TypeCat DepCartAction A (a : A ** B a)
 graphDepCoPara f = MkDepCoPara (\(a ** a') => ?ll) (\a => ?xx)
