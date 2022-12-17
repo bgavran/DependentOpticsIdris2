@@ -1,5 +1,7 @@
 module ChurchForRealz
 
+import Data.Vect
+
 record Cat where
   constructor MkCat
   obj : Type
@@ -27,9 +29,9 @@ record GrothObj (c : Cat) (d: IndCat c) where
   fibObj : (d.mapObj baseObj).obj
 
 record GrothMor (c : Cat) (d : IndCat c) (s : GrothObj c d) (t : GrothObj c d) where
-  constructor MkGrothMor 
+  constructor MkGrothMor
   baseMor : c.arr s.baseObj t.baseObj
-  fibMor : (d.mapObj s.baseObj).arr 
+  fibMor : (d.mapObj s.baseObj).arr
               s.fibObj
               (d.mapMor {x = s.baseObj} {y = t.baseObj} (baseMor) t.fibObj)
 
@@ -50,14 +52,13 @@ FamCat a = MkCat
 
 -- And this is an indexed category over the category of types
 FamInd : IndCat TypeCat
-FamInd = MkIndCat FamCat (\a, b => b . a)
+FamInd = MkIndCat FamCat (\a => (. a))
 
 -- A dependent action on a category `c` is an indexed category over `c`
 -- with an action of the fibres on their base.
 record DepAct (c : Cat) where
   constructor MkDepAct
   bund : IndCat c
-  -- act : Functor (groth c bund) c
   act : (x : c.obj) -> Functor (bund.mapObj x) c
 
 
@@ -81,31 +82,60 @@ CoparaCat : (c : Cat) -> (m : DepAct c) -> Cat
 CoparaCat c m = MkCat c.obj (CoparaMor c m)
 
 
+-- String -> Nat involves an Nat-indexed Set, r:Nat -> Set and then
+-- the function f : String -> (n : Nat ** r n)
+CoparaFamInd : CoparaMor TypeCat DepCartAction String Nat
+CoparaFamInd = MkCoparaMor (flip Vect Bool) (\s => (_ ** map (== 'a') (fromList (unpack s))))
+
+
 -- Example, the graph of a function is a coparameterised morphism
 graphCartCoPara : {A, B : Type} -> (A -> B) -> CoparaMor TypeCat CartAction A B
 graphCartCoPara f = MkCoparaMor A (\a => (f a, a))
 
 
+-- Data we need to specify the action per fiber
 record OverDepAct (c : Cat) (action : DepAct c) (d : IndCat c) where
   constructor MkOverDepAct
-  actt : (x : c.obj) 
-          -> (m : (action.bund.mapObj x).obj) 
-          -> (x' : ((fibOp c d).mapObj x).obj) 
-          -> ((fibOp c d).mapObj (action.act x m)).obj
+  actt : (y : c.obj)
+          -> (m : (action.bund.mapObj y).obj)
+          -> (y' : ((fibOp c d).mapObj y).obj)
+          -> ((fibOp c d).mapObj (action.act y m)).obj
 
-forgett : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c) 
-          -> OverDepAct c m d 
+
+-- Combine two X-indexed sets into one indexed sets
+
+
+-- FamInd appears twice, once in DepCartAction and once here in type
+
+-- Indexed by the dependent pair, but functionally doesn't depend on it
+i : (y : Type) -- You get a set Y
+  -> (m : y -> Type) -> (y' : y -> Type) -- You get 2 Y-indexed sets
+  -> (y0 : y ** m y0) -> Type -- Create a (y0 : y ** m y)-indexed Set
+i y m y' = \(y0 ** m0) => y' y0 -- by only indexing over y0 using y'
+-- i y m = (mapMor FamInd) fst -- by only indexing over y0 using y'
+
+CospanOverAct : OverDepAct TypeCat DepCartAction FamInd
+CospanOverAct = MkOverDepAct (\y, m => (mapMor FamInd) fst)
+
+-- drops the base, FamInd is here two times
+-- FamInd is inside DepAct
+-- FamInd is d
+GrothAct : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c)
+          -> OverDepAct c m d
           -> DepAct (groth c (fibOp c d))
-forgett c m d doa = MkDepAct
-  (MkIndCat (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor (f.baseMor)))
-  (\x, x'' => MkGrothObj (m.act x.baseObj x'') (doa.actt x.baseObj x'' x.fibObj) )
+GrothAct c m d doa = MkDepAct
+  (MkIndCat (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor f.baseMor)) -- doubly indexed category (i.e. indexed over the total space) ((x ** x') => )
+  ?bbb
+  --(MkIndCat (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor (f.baseMor)))
+  --(\x, x'' => MkGrothObj (m.act x.baseObj x'') (doa.actt x.baseObj x'' x.fibObj) )
+
 
 DependentOpticsCat : (c : Cat) -> (m : DepAct c) -> (d : IndCat c)
                      -> (over : OverDepAct c m d)
                      -> Cat
-DependentOpticsCat c m d over = CoparaCat (groth c (fibOp c d)) (forgett c m d over)
+DependentOpticsCat c m d over = CoparaCat (groth c (fibOp c d)) (GrothAct c m d over)
 
-DependentOptics : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c) 
+DependentOptics : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c)
                -> (over : OverDepAct c m d)
                -> (x : c.obj) -> (x' : ((fibOp c d).mapObj x).obj)
                -> (y : c.obj) -> (y' : ((fibOp c d).mapObj y).obj)
@@ -120,70 +150,41 @@ CartesianOptic : (x, x', y, y' : Type) -> Type
 CartesianOptic x x' y y' = DependentOptics TypeCat CartAction (MkIndCat (\_ => TypeCat) (\_ => id))
   (MkOverDepAct (\_ => Pair)) x x' y y'
 
-testOptics : (a -> b) -> (a -> b' -> a') -> CartesianOptic a a' b b'
-testOptics f fsharp = MkCoparaMor a (MkGrothMor (\x => (f x, x)) (uncurry fsharp))
+-- uncomment
+-- testOptics : (a -> b) -> (a -> b' -> a') -> CartesianOptic a a' b b'
+-- testOptics f fsharp = MkCoparaMor a (MkGrothMor (\x => (f x, x)) (uncurry fsharp))
 
+-- objects of Fam(Set) are containers
+Cont : Type
 Cont = GrothObj TypeCat (fibOp TypeCat FamInd)
 
-CospanOverAct : OverDepAct TypeCat DepCartAction FamInd
-CospanOverAct = MkOverDepAct (\c, f, g => g . fst)
-
+-- using FamInd twice below!
 CartDepOptics : Cat
 CartDepOptics = DependentOpticsCat TypeCat DepCartAction FamInd CospanOverAct
 
-
-record ContMor (a : Cont) (b : Cont) where
+record DLens (a : Cont) (b : Cont) where
+  constructor MkDLens
   fwd : a.baseObj -> b.baseObj
   bck : (x : a.baseObj) -> b.fibObj (fwd x) -> a.fibObj x
+
+record ClDLens (a : Cont) (b : Cont) where
+  constructor MkClDLens
+  cl : (x : a.baseObj) -> (y : b.baseObj ** b.fibObj y -> a.fibObj x)
 
 graph : (f : a -> b) -> (a -> (x : b ** a))
 graph f a = (f a ** a)
 
-testDependentOptics : (a, b : Cont) -> ContMor a b -> (arr CartDepOptics) a b
-testDependentOptics a b f = MkCoparaMor
-  (\x => a.baseObj)
-  (MkGrothMor
-    (graph f.fwd)
-    f.bck)
+-- DLenstoDepOptic : (a, b : Cont) -> DLens a b -> (arr CartDepOptics) a b
+-- DLenstoDepOptic (MkGrothObj aPos aDir) (MkGrothObj bPos bDir) (MkDLens f f') = MkCoparaMor
+--   (\_ => aPos)
+--   (MkGrothMor
+--     (\a => (f a ** a))
+--     ?fffffff)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-{-
-
-
-SliceCat : Type -> Cat
-SliceCat a = MkCat
-  (x : Type ** x -> a)
-  (\(x ** p), (y ** q) => x -> y) -- missing proof that triangle commutes
-
-
-graphDepCoPara : {A : Type} -> {B : A -> Type} -> ((a : A) -> B a) -> DepCoPara TypeCat DepCartAction A (a : A ** B a)
-graphDepCoPara f = MkDepCoPara (\(a ** a') => ?ll) (\a => ?xx)
-
-graphDepCoPara' : {A : Type} -> {B : A -> Type} -> ((a : A) -> B a) -> DepCoPara TypeCat DepCartAction A A
-graphDepCoPara' f = MkDepCoPara B (\x => (x ** f x))
+-- DLenstoDepOptic : (a, b : Cont) -> ClDLens a b -> (arr CartDepOptics) a b
+-- DLenstoDepOptic (MkGrothObj aPos aDir) (MkGrothObj bPos bDir)
+        --(\x => a.baseObj)
+  --(MkGrothMor
+  --  (graph f.fwd)
+  --  f.bck)
