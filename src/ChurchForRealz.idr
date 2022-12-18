@@ -8,20 +8,31 @@ record Cat where
   arr : obj -> obj -> Type
 
 -- Functors are defined by their action on objects
-Functor : Cat -> Cat -> Type
-Functor c d = c.obj -> d.obj
+record Functor (c, d : Cat)  where
+  constructor MkFunctor
+  mapObj : c.obj -> d.obj
+  mapMor : {a, b : c.obj} ->
+           c.arr a b -> d.arr (mapObj a) (mapObj b)
 
+Cat1Op : Cat
+Cat1Op = MkCat Cat (\x, y =>  Functor y x)
+
+-- TODO: change into functor
 -- An indexed category is a functor C^op -> Cat
-record IndCat (c : Cat) where
-  constructor MkIndCat
-  mapObj : c.obj -> Cat
-  mapMor : {x, y : c.obj} -> c.arr x y -> Functor (mapObj y) (mapObj x)
+-- record IndCat (c : Cat) where
+--   constructor MkIndCat
+--   mapObj : c.obj -> Cat
+--   mapMor : {x, y : c.obj} -> c.arr x y -> Functor (mapObj y) (mapObj x)
+
+IndCat : (c : Cat) -> Type
+IndCat c = Functor c Cat1Op
 
 opCat : Cat -> Cat
 opCat c = MkCat c.obj (flip c.arr)
 
 fibOp : (c : Cat) -> IndCat c -> IndCat c
-fibOp c ic = MkIndCat (opCat . ic.mapObj) ic.mapMor
+fibOp c ic = MkFunctor (opCat . ic.mapObj)
+                       (\a => MkFunctor (ic.mapMor a).mapObj (ic.mapMor a).mapMor)
 
 record GrothObj (c : Cat) (d: IndCat c) where
   constructor MkGrothObj
@@ -33,7 +44,8 @@ record GrothMor (c : Cat) (d : IndCat c) (s : GrothObj c d) (t : GrothObj c d) w
   baseMor : c.arr s.baseObj t.baseObj
   fibMor : (d.mapObj s.baseObj).arr
               s.fibObj
-              (d.mapMor {x = s.baseObj} {y = t.baseObj} (baseMor) t.fibObj)
+              ((d.mapMor {a = s.baseObj} {b = t.baseObj}
+                    baseMor).mapObj t.fibObj)
 
 groth : (c : Cat) -> IndCat c -> Cat
 groth c ind = MkCat
@@ -52,41 +64,47 @@ FamCat a = MkCat
 
 -- And this is an indexed category over the category of types
 FamInd : IndCat TypeCat
-FamInd = MkIndCat FamCat (\a => (. a))
+FamInd = MkFunctor FamCat (\a => MkFunctor (. a) (\f, x, y => f (a x) y) )
 
 -- A dependent action on a category `c` is an indexed category over `c`
 -- with an action of the fibres on their base.
 record DepAct (c : Cat) where
   constructor MkDepAct
   bund : IndCat c
-  act : (x : c.obj) -> Functor (bund.mapObj x) c
+  act : Functor (groth c bund) c -- Functor (bund.mapObj x) c
 
+helpMe : {c : Cat} -> (d : DepAct c) -> (o : c.obj) -> (d.bund.mapObj o).obj -> c.obj -- Functor (bund.mapObj x) c
+helpMe d o x = d.act.mapObj $ MkGrothObj o x
+
+(.godHelpMe) : {c : Cat} -> (d : DepAct c) -> {o, o' : c.obj} ->
+               (a : c.arr o o') ->
+               {dio : (d.bund.mapObj o).obj} -> {dio' : (d.bund.mapObj o').obj} ->
+               (d.bund.mapObj o).arr dio ((d.bund.mapMor {a = o} {b = o'} a).mapObj dio') ->
+               c.arr (ChurchForRealz.helpMe d o dio) (ChurchForRealz.helpMe d o' dio')
+(.godHelpMe) d a mor = d.act.mapMor $ MkGrothMor a mor
 
 CartAction : DepAct TypeCat
 CartAction = MkDepAct
-  (MkIndCat (\_ => TypeCat) (\_ => id))
-  (,)
-
+  (MkFunctor (\_ => TypeCat) (\_ => MkFunctor (\x => x) (\x => x)))
+  (MkFunctor (\x => Pair x.baseObj x.fibObj) (\(MkGrothMor f g) => bimap f g))
 
 DepCartAction : DepAct TypeCat
-DepCartAction = MkDepAct FamInd DPair
+DepCartAction = MkDepAct FamInd (MkFunctor (\x => DPair x.baseObj x.fibObj)
+                                           (\d, v => MkDPair (d.baseMor v.fst) (d.fibMor v.fst v.snd)))
 
-
-record CoparaMor (c : Cat) (m : DepAct c) (A, B : c.obj) where
+record CoparaMor (c : Cat) (m : DepAct c) (a, b : c.obj) where
   constructor MkCoparaMor
-  0 M : (m.bund.mapObj B).obj
-  f : c.arr A (m.act B M)
+  res : (m.bund.mapObj b).obj
+  f : c.arr a (m.act.mapObj (MkGrothObj b res))
 
 
 CoparaCat : (c : Cat) -> (m : DepAct c) -> Cat
 CoparaCat c m = MkCat c.obj (CoparaMor c m)
 
-
 -- String -> Nat involves an Nat-indexed Set, r:Nat -> Set and then
 -- the function f : String -> (n : Nat ** r n)
 CoparaFamInd : CoparaMor TypeCat DepCartAction String Nat
 CoparaFamInd = MkCoparaMor (flip Vect Bool) (\s => (_ ** map (== 'a') (fromList (unpack s))))
-
 
 -- Example, the graph of a function is a coparameterised morphism
 graphCartCoPara : {A, B : Type} -> (A -> B) -> CoparaMor TypeCat CartAction A B
@@ -97,10 +115,23 @@ graphCartCoPara f = MkCoparaMor A (\a => (f a, a))
 record OverDepAct (c : Cat) (action : DepAct c) (d : IndCat c) where
   constructor MkOverDepAct
   actt : (y : c.obj)
-          -> (m : (action.bund.mapObj y).obj)
-          -> (y' : ((fibOp c d).mapObj y).obj)
-          -> ((fibOp c d).mapObj (action.act y m)).obj
+      -> (m : (action.bund.mapObj y).obj)
+      -> (y' : ((fibOp c d).mapObj y).obj)
+      -> ((fibOp c d).mapObj (action.act.mapObj (MkGrothObj y m))).obj
 
+  mort : {o, o' : c.obj}
+      -> {dio : (action.bund.mapObj o).obj}
+      -> {dio' : (action.bund.mapObj o').obj}
+      -> {thing1 : ((fibOp c d).mapObj o).obj}
+      -> {thing2 : ((fibOp c d).mapObj o').obj}
+      -> (a : c.arr o o')
+      -> (m : (action.bund.mapObj o).arr dio ((action.bund.mapMor {a = o} {b = o'} a).mapObj dio'))
+      -> ((fibOp c d).mapObj o).arr thing1 (((fibOp c d).mapMor {a = o} {b = o'} a).mapObj thing2)
+      -> ((fibOp c d).mapObj (helpMe action o dio)).arr
+            (actt o dio thing1)
+            (((fibOp c d).mapMor {a = helpMe action o dio} {b = helpMe action o' dio'}
+                (action.godHelpMe {o} {o'} {dio'} {dio} a m)).mapObj
+                (actt o' dio' thing2))
 
 -- Combine two X-indexed sets into one indexed sets
 
@@ -115,7 +146,8 @@ i y m y' = \(y0 ** m0) => y' y0 -- by only indexing over y0 using y'
 -- i y m = (mapMor FamInd) fst -- by only indexing over y0 using y'
 
 CospanOverAct : OverDepAct TypeCat DepCartAction FamInd
-CospanOverAct = MkOverDepAct (\y, m => (mapMor FamInd) fst)
+CospanOverAct = MkOverDepAct (\y, m, z => z . fst)
+                             (\a, b, f, z, w => f (z.fst) w)
 
 -- drops the base, FamInd is here two times
 -- FamInd is inside DepAct
@@ -124,8 +156,11 @@ GrothAct : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c)
           -> OverDepAct c m d
           -> DepAct (groth c (fibOp c d))
 GrothAct c m d doa = MkDepAct
-  (MkIndCat (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor f.baseMor)) -- doubly indexed category (i.e. indexed over the total space) ((x ** x') => )
-  ?bbb
+  (MkFunctor (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor f.baseMor)) -- doubly indexed category (i.e. indexed over the total space) ((x ** x') => )
+  (MkFunctor (\o => MkGrothObj (helpMe m o.baseObj.baseObj o.fibObj) (doa.actt o.baseObj.baseObj o.fibObj o.baseObj.fibObj))
+             (\(MkGrothMor (MkGrothMor f f') g) => MkGrothMor
+               (m.godHelpMe f g)
+               (doa.mort f g f')))
   --(MkIndCat (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor (f.baseMor)))
   --(\x, x'' => MkGrothObj (m.act x.baseObj x'') (doa.actt x.baseObj x'' x.fibObj) )
 
@@ -147,8 +182,9 @@ DependentOptics c m d over x x' y y' =
 -- x  -> y
 -- x' <- y'
 CartesianOptic : (x, x', y, y' : Type) -> Type
-CartesianOptic x x' y y' = DependentOptics TypeCat CartAction (MkIndCat (\_ => TypeCat) (\_ => id))
-  (MkOverDepAct (\_ => Pair)) x x' y y'
+CartesianOptic x x' y y' = DependentOptics TypeCat CartAction
+  (MkFunctor (\_ => TypeCat) (\_ => MkFunctor (\x => x) (\x => x)))
+  (MkOverDepAct (\_ => Pair) (\_, f, g => ?makeitEnd)) x x' y y'
 
 -- uncomment
 -- testOptics : (a -> b) -> (a -> b' -> a') -> CartesianOptic a a' b b'
@@ -188,3 +224,4 @@ graph f a = (f a ** a)
   --(MkGrothMor
   --  (graph f.fwd)
   --  f.bck)
+
