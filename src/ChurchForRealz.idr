@@ -7,6 +7,8 @@ record Cat where
   obj : Type
   arr : obj -> obj -> Type
 
+-- rewrite indexed category as a functor, but for that we'd also need to write the category of categories as a category
+
 -- Functors are defined by their action on objects
 Functor : Cat -> Cat -> Type
 Functor c d = c.obj -> d.obj
@@ -40,6 +42,9 @@ groth c ind = MkCat
   (GrothObj c ind)
   (GrothMor c ind)
 
+FLens : (c : Cat) -> (f : IndCat c) -> Cat
+FLens c f = groth c (fibOp c f)
+
 -- There is a category of Idris types and functions
 TypeCat : Cat
 TypeCat = MkCat Type (\a, b => a -> b)
@@ -52,7 +57,41 @@ FamCat a = MkCat
 
 -- And this is an indexed category over the category of types
 FamInd : IndCat TypeCat
-FamInd = MkIndCat FamCat (\a => (. a))
+FamInd = MkIndCat FamCat (\f => (. f))
+
+-- For a type `a` there is a category of `a`-indexed types
+Fam0Cat : Type -> Cat
+Fam0Cat a = MkCat
+  ((0 x : a) -> Type)
+  (\a', b' => (0 x : a) -> a' x -> b' x)
+
+-- 0 is a functor Type -> Type
+
+Fam0Ind : IndCat TypeCat
+Fam0Ind = MkIndCat Fam0Cat (\f, a', x => a' (f x)) -- (\a => (. a))
+
+DepAdt : Cat
+DepAdt = FLens TypeCat Fam0Ind
+
+data Fin0 : (0 n : Nat) -> Type where
+  FZero : Fin0 (S n)
+  FSucc : Fin0 n -> Fin0 (S n)
+
+data Vect0 : (0 t : Type) -> (0 n : Nat) -> Type where
+  Nil : Vect0 a Z
+  (::) : e -> Vect0 e n -> Vect0 e (S n)
+
+tail0 : Vect0 a (S n) -> Vect0 a n
+tail0 (x :: y) = y
+
+Domainobj : GrothObj TypeCat Fam0Ind
+Domainobj = MkGrothObj Nat Fin0
+
+Codomainobj : GrothObj TypeCat Fam0Ind
+Codomainobj = MkGrothObj Nat Fin0
+
+f : arr DepAdt (MkGrothObj Nat (Vect0 Bool)) (MkGrothObj Nat (Vect0 Bool))
+f = MkGrothMor S (\x => tail0)
 
 -- A dependent action on a category `c` is an indexed category over `c`
 -- with an action of the fibres on their base.
@@ -60,6 +99,7 @@ record DepAct (c : Cat) where
   constructor MkDepAct
   bund : IndCat c
   act : (x : c.obj) -> Functor (bund.mapObj x) c
+  -- we can uncurry this to become a functor from Groth construction to c
 
 
 CartAction : DepAct TypeCat
@@ -71,6 +111,8 @@ CartAction = MkDepAct
 DepCartAction : DepAct TypeCat
 DepCartAction = MkDepAct FamInd DPair
 
+DepCart0Action : DepAct TypeCat
+DepCart0Action = MkDepAct Fam0Ind ?rr -- DPair
 
 record CoparaMor (c : Cat) (m : DepAct c) (A, B : c.obj) where
   constructor MkCoparaMor
@@ -101,12 +143,8 @@ record OverDepAct (c : Cat) (action : DepAct c) (d : IndCat c) where
           -> (y' : ((fibOp c d).mapObj y).obj)
           -> ((fibOp c d).mapObj (action.act y m)).obj
 
-
 -- Combine two X-indexed sets into one indexed sets
-
-
 -- FamInd appears twice, once in DepCartAction and once here in type
-
 -- Indexed by the dependent pair, but functionally doesn't depend on it
 i : (y : Type) -- You get a set Y
   -> (m : y -> Type) -> (y' : y -> Type) -- You get 2 Y-indexed sets
@@ -120,20 +158,21 @@ CospanOverAct = MkOverDepAct (\y, m => (mapMor FamInd) fst)
 -- drops the base, FamInd is here two times
 -- FamInd is inside DepAct
 -- FamInd is d
+-- TODO refactor this
 GrothAct : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c)
           -> OverDepAct c m d
-          -> DepAct (groth c (fibOp c d))
+          -> DepAct (FLens c d)
 GrothAct c m d doa = MkDepAct
-  (MkIndCat (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor f.baseMor)) -- doubly indexed category (i.e. indexed over the total space) ((x ** x') => )
-  ?bbb
-  --(MkIndCat (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor (f.baseMor)))
-  --(\x, x'' => MkGrothObj (m.act x.baseObj x'') (doa.actt x.baseObj x'' x.fibObj) )
+  -- what this says is that the things that can act on (x, x') in D^ are exactly the things that can act on x in C (where C <-- D^)
+  (MkIndCat (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor f.baseMor)) -- doubly indexed category (i.e. indexed over the total space)
+  (\(MkGrothObj xbase xpoint), m' => MkGrothObj (m.act xbase m') (doa.actt xbase m' xpoint))
 
-
+-- Dependent optics is CoPara of something
+-- CoPara(Cont)
 DependentOpticsCat : (c : Cat) -> (m : DepAct c) -> (d : IndCat c)
                      -> (over : OverDepAct c m d)
                      -> Cat
-DependentOpticsCat c m d over = CoparaCat (groth c (fibOp c d)) (GrothAct c m d over)
+DependentOpticsCat c m d over = CoparaCat (FLens c d) (GrothAct c m d over)
 
 DependentOptics : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c)
                -> (over : OverDepAct c m d)
@@ -147,12 +186,14 @@ DependentOptics c m d over x x' y y' =
 -- x  -> y
 -- x' <- y'
 CartesianOptic : (x, x', y, y' : Type) -> Type
-CartesianOptic x x' y y' = DependentOptics TypeCat CartAction (MkIndCat (\_ => TypeCat) (\_ => id))
+CartesianOptic x x' y y' = DependentOptics TypeCat CartAction       (MkIndCat (\_ => TypeCat) (\_ => id))
   (MkOverDepAct (\_ => Pair)) x x' y y'
 
--- uncomment
--- testOptics : (a -> b) -> (a -> b' -> a') -> CartesianOptic a a' b b'
--- testOptics f fsharp = MkCoparaMor a (MkGrothMor (\x => (f x, x)) (uncurry fsharp))
+graph : (a -> b) -> (a -> (b, a))
+graph f = \a => (f a, a)
+
+embedLensintoDepOptic : (a -> b) -> ((a, b') -> a') -> CartesianOptic a a' b b'
+embedLensintoDepOptic f fsharp = MkCoparaMor a (MkGrothMor (graph f) fsharp)
 
 -- objects of Fam(Set) are containers
 Cont : Type
@@ -171,18 +212,30 @@ record ClDLens (a : Cont) (b : Cont) where
   constructor MkClDLens
   cl : (x : a.baseObj) -> (y : b.baseObj ** b.fibObj y -> a.fibObj x)
 
-graph : (f : a -> b) -> (a -> (x : b ** a))
-graph f a = (f a ** a)
+DepGraph : (f : a -> b) -> (a -> (x : b ** a))
+DepGraph f a = (f a ** a)
 
--- DLenstoDepOptic : (a, b : Cont) -> DLens a b -> (arr CartDepOptics) a b
--- DLenstoDepOptic (MkGrothObj aPos aDir) (MkGrothObj bPos bDir) (MkDLens f f') = MkCoparaMor
---   (\_ => aPos)
---   (MkGrothMor
---     (\a => (f a ** a))
---     ?fffffff)
+-- DLenstoDepOptic : (A, B : Cont) -> DLens A B -> (arr CartDepOptics) A B
+-- DLenstoDepOptic (MkGrothObj a a') (MkGrothObj b b') (MkDLens f f') = MkCoparaMor
+--   (\_ => a)
+--   (MkGrothMor (DepGraph f) ?bwl) -- f')
+
+-- testDepOptic : (arr CartDepOptics) (MkGrothObj String (\s => ())) (MkGrothObj () (\_ => ()))
+-- testDepOptic = MkCoparaMor
+--   (?tt)
+--   (MkGrothMor (\s => (() ** ?l)) ?bw)
 
 
--- DLenstoDepOptic : (a, b : Cont) -> ClDLens a b -> (arr CartDepOptics) a b
+{-
+ClDLenstoDepOptic : (A, B : Cont) -> ClDLens A B -> (arr CartDepOptics) A B
+ClDLenstoDepOptic (MkGrothObj a a') (MkGrothObj b b') (MkClDLens cl)= MkCoparaMor
+-- TODO put 0 x here, ask Andre
+  (\b => Bool)-- (x : a ** b' b -> a' x)) -- needs to hold (fst cl) x = b
+  (MkGrothMor
+    ?fw -- (\x => (fst (cl x) ** (x ** snd (cl x))))
+    ?bw)
+
+-- because we don't know that fst (cl x) = ?
 -- DLenstoDepOptic (MkGrothObj aPos aDir) (MkGrothObj bPos bDir)
         --(\x => a.baseObj)
   --(MkGrothMor
