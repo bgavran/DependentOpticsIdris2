@@ -9,7 +9,8 @@ public export
 record DepOptic (A, B : Cont) where
   constructor MkDepOptic
   fw : DepCoPara (shp A) (shp B)
-  bw : {0 a : shp A} -> {0 b : shp B} -> (res fw) a b -> pos B b -> pos A a
+  bw : {0 a : shp A} -> {0 b : shp B}
+  -> (res fw) a b -> pos B b -> pos A a
 
 compDepOptic : {A, B, C : Cont} -> DepOptic A B -> DepOptic B C -> DepOptic A C
 compDepOptic f g = MkDepOptic

@@ -131,34 +131,42 @@ graphCartCoPara f = MkCoparaMor A (\a => (f a, a))
 -- Data we need to specify the action per fiber
 record OverDepAct (c : Cat) (action : DepAct c) (d : IndCat c) where
   constructor MkOverDepAct
-  actt : (y : c.obj)
-          -> (m : (action.bund.mapObj y).obj)
-          -> (y' : ((fibOp c d).mapObj y).obj)
-          -> ((fibOp c d).mapObj (action.act y m)).obj
+  actt : (y : obj c)
+      -> (m : obj (action.bund.mapObj y))
+      -> (z : obj ((fibOp c d).mapObj y))
+      ->      obj ((fibOp c d).mapObj (action.act y m))
 
 -- Combine two X-indexed sets into one indexed sets
 -- FamInd appears twice, once in DepCartAction and once here in type
 -- Indexed by the dependent pair, but functionally doesn't depend on it
 i : (y : Type) -- You get a set Y
-  -> (m : y -> Type) -> (y' : y -> Type) -- You get 2 Y-indexed sets
-  -> (y0 : y ** m y0) -> Type -- Create a (y0 : y ** m y)-indexed Set
-i y m y' = \(y0 ** m0) => y' y0 -- by only indexing over y0 using y'
+  -> (m : y -> Type) -> (y' : (0 _ : y) -> Type) -- You get 2 Y-indexed sets
+  -> (0 _ : (y0 : y ** m y0)) -> Type -- Create a (y0 : y ** m y)-indexed Set
+i y m y' = \x => y' (fst x) -- by only indexing over y0 using y'
 -- i y m = (mapMor FamInd) fst -- by only indexing over y0 using y'
 
 CospanOverAct : OverDepAct TypeCat DepCartAction FamInd
-CospanOverAct = MkOverDepAct (\y, m => (mapMor FamInd) fst)
+CospanOverAct = MkOverDepAct (\y, m =>
+                   mapMor FamInd fst)
+
+Cospan0OverAct : OverDepAct TypeCat CartAction Fam0Ind
+Cospan0OverAct = MkOverDepAct (\y, m, f, g => (m, f (fst g)))
 
 -- drops the base, FamInd is here two times
 -- FamInd is inside DepAct
+public export
 -- FamInd is d
 -- TODO refactor this
 GrothAct : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c)
           -> OverDepAct c m d
           -> DepAct (FLens c d)
 GrothAct c m d doa = MkDepAct
-  -- what this says is that the things that can act on (x, x') in D^ are exactly the things that can act on x in C (where C <-- D^)
-  (MkIndCat (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor f.baseMor)) -- doubly indexed category (i.e. indexed over the total space)
-  (\(MkGrothObj xbase xpoint), m' => MkGrothObj (m.act xbase m') (doa.actt xbase m' xpoint))
+  -- what this says is that the things that can act on (x, x') in D^ are exactly the
+  -- things that can act on x in C (where C <-- D^)
+  (MkIndCat (\x => m.bund.mapObj x.baseObj) (\f => m.bund.mapMor f.baseMor))
+  -- ^ doubly indexed category (i.e. indexed over the total space)
+  -- (\(MkGrothObj xbase xpoint), m' => MkGrothObj (m.act xbase m') (doa.actt xbase m' xpoint))
+  (\grrr, m' => MkGrothObj (m.act (baseObj grrr) m') (doa.actt (baseObj grrr) m' (fibObj grrr)))
 
 -- Dependent optics is CoPara of something
 -- CoPara(Cont)
@@ -179,7 +187,8 @@ DependentOptics c m d over x x' y y' =
 -- x  -> y
 -- x' <- y'
 CartesianOptic : (x, x', y, y' : Type) -> Type
-CartesianOptic x x' y y' = DependentOptics TypeCat CartAction       (MkIndCat (\_ => TypeCat) (\_ => id))
+CartesianOptic x x' y y' = DependentOptics TypeCat CartAction
+  (MkIndCat (\_ => TypeCat) (\_ => id))
   (MkOverDepAct (\_ => Pair)) x x' y y'
 
 graph : (a -> b) -> (a -> (b, a))
@@ -192,9 +201,20 @@ embedLensintoDepOptic f fsharp = MkCoparaMor a (MkGrothMor (graph f) fsharp)
 Cont : Type
 Cont = GrothObj TypeCat (fibOp TypeCat FamInd)
 
+Cont0 : Type
+Cont0 = GrothObj TypeCat (fibOp TypeCat Fam0Ind)
+
 -- using FamInd twice below!
 CartDepOptics : Cat
 CartDepOptics = DependentOpticsCat TypeCat DepCartAction FamInd CospanOverAct
+
+CartDepOptics0 : Cat
+CartDepOptics0 = DependentOpticsCat TypeCat CartAction Fam0Ind Cospan0OverAct
+
+record DLens0 (a : Cont0) (b : Cont0) where
+  constructor MkDLens0
+  fwd : a.baseObj -> b.baseObj
+  bck : (x : a.baseObj) -> b.fibObj (fwd x) -> a.fibObj x
 
 record DLens (a : Cont) (b : Cont) where
   constructor MkDLens
@@ -208,7 +228,21 @@ record ClDLens (a : Cont) (b : Cont) where
 DepGraph : (f : a -> b) -> (a -> (x : b ** a))
 DepGraph f a = (f a ** a)
 
--- DLenstoDepOptic : (A, B : Cont) -> DLens A B -> (arr CartDepOptics) A B
+depApt2DepOptic : arr DepAdt a b -> arr CartDepOptics0 a b
+depApt2DepOptic (MkGrothMor alonzo church) =
+  MkCoparaMor Unit (MkGrothMor (\x => (alonzo x, ())) (\0 z, w => church z (snd w)))
+
+normalLenses2DepOptic : {0 a : Type} -> (a -> b) -> ((a, b') -> a') -> arr CartDepOptics0
+   (MkGrothObj a (\_ => a')) (MkGrothObj b (\_ => b'))
+normalLenses2DepOptic f g = MkCoparaMor a (MkGrothMor (\x => (f x, x)) (\0 _ => g))
+
+DLenstoDepOptic : (A, B : Cont0) -> DLens0 A B -> (arr CartDepOptics0) A B
+DLenstoDepOptic (MkGrothObj a a') (MkGrothObj b b') (MkDLens0 fwd bwd) =
+  MkCoparaMor a
+  (MkGrothMor (\x => (fwd x, x)) ?please)
+-- f = (\x => a , x == a)
+-- (x : a) -> (0 res : f a) -> (b' (fwd x)) -> a' x
+
 -- DLenstoDepOptic (MkGrothObj a a') (MkGrothObj b b') (MkDLens f f') = MkCoparaMor
 --   (\_ => a)
 --   (MkGrothMor (DepGraph f) ?bwl) -- f')
