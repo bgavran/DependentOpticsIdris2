@@ -1,6 +1,8 @@
 module ChurchForRealz
 
 import Data.Vect
+import Data.DPair
+import Erased
 
 record Cat where
   constructor MkCat
@@ -73,23 +75,6 @@ Fam0Ind = MkIndCat Fam0Cat (\f, a', x => a' (f x)) -- (\a => (. a))
 DepAdt : Cat
 DepAdt = FLens TypeCat Fam0Ind
 
-data Fin0 : (0 n : Nat) -> Type where
-  FZero : Fin0 (S n)
-  FSucc : Fin0 n -> Fin0 (S n)
-
-data Vect0 : (0 t : Type) -> (0 n : Nat) -> Type where
-  Nil : Vect0 a Z
-  (::) : e -> Vect0 e n -> Vect0 e (S n)
-
-tail0 : Vect0 a (S n) -> Vect0 a n
-tail0 (x :: y) = y
-
-Domainobj : GrothObj TypeCat Fam0Ind
-Domainobj = MkGrothObj Nat Fin0
-
-Codomainobj : GrothObj TypeCat Fam0Ind
-Codomainobj = MkGrothObj Nat Fin0
-
 f : arr DepAdt (MkGrothObj Nat (Vect0 Bool)) (MkGrothObj Nat (Vect0 Bool))
 f = MkGrothMor S (\x => tail0)
 
@@ -107,18 +92,21 @@ CartAction = MkDepAct
   (MkIndCat (\_ => TypeCat) (\_ => id))
   (,)
 
+record Exists0 (type : Type) (p : (0 _ : type) -> Type) where
+  constructor Ev
+  0 fst : type
+  snd : p fst
 
 DepCartAction : DepAct TypeCat
 DepCartAction = MkDepAct FamInd DPair
 
 DepCart0Action : DepAct TypeCat
-DepCart0Action = MkDepAct Fam0Ind ?rr -- DPair
+DepCart0Action = MkDepAct Fam0Ind Exists0
 
 record CoparaMor (c : Cat) (m : DepAct c) (A, B : c.obj) where
   constructor MkCoparaMor
   0 M : (m.bund.mapObj B).obj
   f : c.arr A (m.act B M)
-
 
 CoparaCat : (c : Cat) -> (m : DepAct c) -> Cat
 CoparaCat c m = MkCat c.obj (CoparaMor c m)
@@ -128,6 +116,11 @@ CoparaCat c m = MkCat c.obj (CoparaMor c m)
 -- the function f : String -> (n : Nat ** r n)
 CoparaFamInd : CoparaMor TypeCat DepCartAction String Nat
 CoparaFamInd = MkCoparaMor (flip Vect Bool) (\s => (_ ** map (== 'a') (fromList (unpack s))))
+
+-- String -> Nat involves an Nat-indexed Set, r:Nat -> Set and then
+-- the function f : String -> (n : Nat ** r n)
+CoparaFam0Ind : CoparaMor TypeCat DepCart0Action String Nat
+CoparaFam0Ind = MkCoparaMor (Vect0 Bool) (\s => (Ev _ (map (== 'a') (fromList (unpack s)))))
 
 
 -- Example, the graph of a function is a coparameterised morphism
