@@ -1,5 +1,4 @@
-
-module Erased
+module Cats.Erased
 
 public export
 data Fin0 : (0 n : Nat) -> Type where
@@ -30,3 +29,14 @@ fromList : (xs : List elem) -> Vect0 elem (length xs)
 fromList [] = []
 fromList (x :: xs) = x :: fromList xs
 
+
+public export
+erasedReparam : {A, B : Type} -> {B' : B -> Type} ->
+  (f : A -> B) -> ((0 b : B) -> B' b) -> (0 a : A) -> B' (f a)
+erasedReparam f r = \a => r (f a)
+
+public export
+record Exists0 (type : Type) (p : (0 _ : type) -> Type) where
+  constructor Ev
+  0 fst : type
+  snd : p fst

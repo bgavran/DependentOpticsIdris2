@@ -4,54 +4,58 @@ import CartesianLenses
 import DependentLenses
 import Optics
 import CoPara
+import Erased
+
+{-
+record DepOptic (A, B : Cont) where
+  constructor MkDepOptic2
+  res : shp A -> shp B -> Type
+  fw : (a : shp A) -> (b : shp B ** res a b)
+  bw : {0 a : shp A} -> {0 b : shp B} -> res a b -> pos B b -> pos A a
+-}
+
 
 public export
 record DepOptic (A, B : Cont) where
   constructor MkDepOptic
   fw : DepCoPara (shp A) (shp B)
-  bw : {0 a : shp A} -> {0 b : shp B}
-  -> (res fw) a b -> pos B b -> pos A a
+  bw : (0 a : shp A)
+    -> (res1 fw) a -- something over a that acts on it
+    -> pos B (fst ((fw1 fw) a)) -- something over f a
+    -> pos A a -- something over a
+  -- how to say "'a' was used to produce 'b' and isn't anymore available for consumption, but things can still be 'over' it?"
 
 compDepOptic : {A, B, C : Cont} -> DepOptic A B -> DepOptic B C -> DepOptic A C
 compDepOptic f g = MkDepOptic
   (compDepCoPara (fw f) (fw g))
-  (\(_ ** (mab, nbc)) => (bw f) mab . (bw g) nbc)
+  (\a0, (r1, r2) => let f' = bw f a0 r1
+                        g' = bw g
+                        g'b = (erasedReparam (\a => fst (fw1 (fw f) a)) g' a0) r2
+                    in f' . g'b)
+-- again, lots of things can be simplified outside of Idris
 
 ----------------------------------------
 -- Embeddings of other kinds of lenses/optics into dependent optics
 ----------------------------------------
+
+
 DepLensToDepOptic : {A, B : Cont} -> DepLens A B -> DepOptic A B
 DepLensToDepOptic (MkDepLens f f') = MkDepOptic
   (MkDepCoPara
-    (\a, b => (aRes : shp A ** (a = aRes, b = f a))) (\a => (f a ** a  ** (Refl, Refl))))
-  (\(aRes ** (p, q)) => rewrite q in rewrite p in f' aRes)
+  (\a => (a0 : shp A ** a = a0))
+  (\a => (f a, (a ** Refl))))
+  (\a0, (a ** p) => rewrite p in f' a)
 
-OpticToDepOptic : {A, A', B, B' : Type} -> Optic A A' B B' -> DepOptic (Const A A') (Const B B')
-OpticToDepOptic (MkOptic res f f') = MkDepOptic
-  (CoParaToDepCoPara (MkCoPara res f))
-  (curry f')
 
 ClosedDepLensToDepOptic : {A, B : Cont} -> ClosedDepLens A B -> DepOptic A B
 ClosedDepLensToDepOptic (MkClosedDepLens f) = MkDepOptic
-  (MkDepCoPara (\a, b => pos B b -> pos A a) f)
-  (\f', b' => f' b')
+  (MkDepCoPara
+  (\a => (pos B) (fst (f a)) -> (pos A) a)
+  (\a => let t = f a in (fst (f a) , snd (f a))))
+  (\_, f', b' => f' b')
 
-----------------------------------------
 
-lemma : (A, B, Z : Cont) ->
-        (res1 : (A .shp -> Z .shp -> Type)) ->
-        ((a : A .shp) -> (b : Z .shp ** res1 a b)) ->
-        ((a : A .shp) -> (b : Z .shp) -> res1 a b -> Z .pos b -> A .pos a) ->
-        (res2 : (B .shp -> Z .shp -> Type)) ->
-        ((a : B .shp) -> (b : Z .shp ** res2 a b)) ->
-        ((a : B .shp) -> (b : Z .shp) -> res2 a b -> Z .pos b -> B .pos a) ->
-        (0 a : CoProduct (shp A) (shp B)) -> (0 b : shp Z) ->
-        elim res1 res2 a b -> Z .pos b -> elim (A .pos) (B .pos) a
-lemma c1 c2 c3 res1 f g res2 f1 g1 a b x y =
-  let v = elim' {c = c1.pos} {d = c2.pos} ?dd ?bb in ?lemma_rhs
-
-coproductMap : {A, B, Z : Cont} -> DepOptic A Z -> DepOptic B Z -> DepOptic (coproduct A B) Z
-coproductMap (MkDepOptic (MkDepCoPara res1 fw1) bw1) (MkDepOptic (MkDepCoPara res2 fw2) f2) = MkDepOptic
-  (MkDepCoPara (elim res1 res2) (\case L x => fw1 x
-                                       R x => fw2 x))
-  (lemma A B Z res1 fw1 (\_,_ => bw1) res2 fw2 (\_, _ => f2) _ _)
+OpticToDepOptic : {A, A', B, B' : Type} -> Optic A A' B B' -> DepOptic (Const A A') (Const B B')
+OpticToDepOptic (MkOptic res f f') = MkDepOptic
+  (MkDepCoPara (\_ => res) f)
+  (\_ => curry f')
