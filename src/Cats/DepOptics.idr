@@ -18,7 +18,9 @@ public export
 CartDepOptic : Cat
 CartDepOptic = DependentOpticsCat TypeCat DepCartAction FamInd CospanOverAct
 
+public export
 DepLensToDepOptic : (arr DLens) (MkGrothObj a a') (MkGrothObj b b') -> (arr CartDepOptic) (MkGrothObj a a') (MkGrothObj b b')
 DepLensToDepOptic (MkGrothMor f f') = MkDepCoparaMor
   (\_ => Bool)
   (MkGrothMor (\a => ?ff) ?bw)
+  

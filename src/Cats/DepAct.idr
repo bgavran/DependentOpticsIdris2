@@ -83,7 +83,6 @@ GrothAct c m d doa = MkDepAct
   (MkIndCat (m.bund.mapObj . baseObj) (m.bund.mapMor . baseMor))
   -- (ExtendIndCat c d m.bund)
   -- ^ doubly indexed category (i.e. indexed over the total space)
+  (\grrr, m' => MkGrothObj (m.act (baseObj grrr) m') (doa.actt (baseObj grrr) m' (fibObj grrr)))
   -- (\(MkGrothObj xbase xpoint), m' => MkGrothObj (m.act xbase m') (doa.actt xbase m' xpoint))
-  (\(MkGrothObj gr grr), m' => (MkGrothObj (m.act gr m') ?el))
-  -- (\grrr, m' => MkGrothObj (m.act (baseObj grrr) m') (doa.actt (baseObj grrr) m' (fibObj grrr)))
-  -- ?zrr
+  --(\(MkGrothObj gr grr), m' => (MkGrothObj (m.act gr m') ?el))

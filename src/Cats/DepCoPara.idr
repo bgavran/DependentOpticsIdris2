@@ -12,14 +12,6 @@ record DepCoparaMor (c : Cat) (m : DepAct c) (A, B : c.obj) where
   constructor MkDepCoparaMor
   0 M : (m.bund.mapObj B).obj
   f : c.arr A (m.act B M)
-  
-
-public export
-record DepCoparaMor2 (c : Cat) (m : DepAct c) (A, B : c.obj) where
-  constructor MkDepCoparaMor2
-  0 M2 : (m.bund.mapObj A).obj
-  --f2 : c.arr A (  )
-  --f2  : c.arr A (m.act B M2)
 
 public export
 DepCoparaCat : (c : Cat) -> (m : DepAct c) -> Cat

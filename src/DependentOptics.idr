@@ -14,7 +14,6 @@ record DepOptic (A, B : Cont) where
   bw : {0 a : shp A} -> {0 b : shp B} -> res a b -> pos B b -> pos A a
 -}
 
-
 public export
 record DepOptic (A, B : Cont) where
   constructor MkDepOptic
@@ -23,7 +22,7 @@ record DepOptic (A, B : Cont) where
     -> (res1 fw) a -- something over a that acts on it
     -> pos B (fst ((fw1 fw) a)) -- something over f a
     -> pos A a -- something over a
-  -- how to say "'a' was used to produce 'b' and isn't anymore available for consumption, but things can still be 'over' it?"
+  -- here we're saying that 'a' was used to produce 'b' and isn't anymore available for consumption, but things can still be 'over' it
 
 compDepOptic : {A, B, C : Cont} -> DepOptic A B -> DepOptic B C -> DepOptic A C
 compDepOptic f g = MkDepOptic
@@ -59,3 +58,7 @@ OpticToDepOptic : {A, A', B, B' : Type} -> Optic A A' B B' -> DepOptic (Const A 
 OpticToDepOptic (MkOptic res f f') = MkDepOptic
   (MkDepCoPara (\_ => res) f)
   (\_ => curry f')
+
+
+testt : DepOptic (Const Double Double) (Const Double Double)
+testt = MkDepOptic (MkDepCoPara (\_ => Double) (\x => (x * x, x))) (\_, x, dy => 2*x*dy)
