@@ -39,3 +39,7 @@ DLens = FLens TypeCat FamInd
 -- example of a dependent adapter
 f : arr DepAdt (MkGrothObj Nat (Vect0 Bool)) (MkGrothObj Nat (Vect0 Bool))
 f = MkGrothMor S (\x => tail0)
+
+
+embedCartLensFLens : (a -> b) -> (a -> b' -> a') -> (arr DLens) (MkGrothObj a (\_ => a')) (MkGrothObj b (\_ => b'))
+embedCartLensFLens f f' = MkGrothMor f f'
