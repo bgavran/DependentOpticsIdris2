@@ -9,9 +9,9 @@ import Erased
 {-
 record DepOptic2 (A, B : Cont) where
   constructor MkDepOptic2
-  res2 : shp A -> Type
-  fw2 : (a : shp A) -> (b : shp B ** res2 a)
-  bw2 : {0 a : shp A} -> res2 a -> pos B (fst (fw2 a))  -> pos A a
+  res2 : shp B -> Type
+  fw2 : (a : shp A) -> (b : shp B ** res2 b)
+  -- bw2 : {0 a : shp A} -> res2 a -> pos B (fst (fw2 a))  -> pos A a
 -}
 
 public export
@@ -37,7 +37,6 @@ compDepOptic f g = MkDepOptic
 -- Embeddings of other kinds of lenses/optics into dependent optics
 ----------------------------------------
 
-
 DepLensToDepOptic : {A, B : Cont} -> DepLens A B -> DepOptic A B
 DepLensToDepOptic (MkDepLens f f') = MkDepOptic
   (MkDepCoPara
@@ -46,11 +45,16 @@ DepLensToDepOptic (MkDepLens f f') = MkDepOptic
   (\a0, (a ** p) => rewrite p in f' a)
 
 
+ClosedDepLensToDepCopara : {A, B : Cont} -> ClosedDepLens A B -> DepCoPara (shp A) (shp B)
+ClosedDepLensToDepCopara (MkClosedDepLens cl) =
+  MkDepCoPara (\a => (pos B) (fst (cl a)) -> (pos A) a)
+  (\a => (fst (cl a) , snd (cl a)))
+
 ClosedDepLensToDepOptic : {A, B : Cont} -> ClosedDepLens A B -> DepOptic A B
-ClosedDepLensToDepOptic (MkClosedDepLens f) = MkDepOptic
+ClosedDepLensToDepOptic (MkClosedDepLens cl) = MkDepOptic
   (MkDepCoPara
-  (\a => (pos B) (fst (f a)) -> (pos A) a)
-  (\a => let t = f a in (fst (f a) , snd (f a))))
+  (\a => (pos B) (fst (cl a)) -> (pos A) a)
+  (\a => (fst (cl a) , snd (cl a))))
   (\_, f', b' => f' b')
 
 
