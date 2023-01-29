@@ -23,4 +23,3 @@ DepLensToDepOptic : (arr DLens) (MkGrothObj a a') (MkGrothObj b b') -> (arr Cart
 DepLensToDepOptic (MkGrothMor f f') = MkDepCoparaMor
   (\_ => Bool)
   (MkGrothMor (\a => ?ff) ?bw)
-  

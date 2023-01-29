@@ -7,11 +7,11 @@ import CoPara
 import Erased
 
 {-
-record DepOptic (A, B : Cont) where
+record DepOptic2 (A, B : Cont) where
   constructor MkDepOptic2
-  res : shp A -> shp B -> Type
-  fw : (a : shp A) -> (b : shp B ** res a b)
-  bw : {0 a : shp A} -> {0 b : shp B} -> res a b -> pos B b -> pos A a
+  res2 : shp A -> Type
+  fw2 : (a : shp A) -> (b : shp B ** res2 a)
+  bw2 : {0 a : shp A} -> res2 a -> pos B (fst (fw2 a))  -> pos A a
 -}
 
 public export

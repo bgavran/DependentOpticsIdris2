@@ -23,7 +23,6 @@ record DepCoPara (A, B : Type) where
   res1 : A -> Type
   fw1 : (a : A) -> (B, res1 a)
 
-
 -- Important! We're still just over A!
 public export
 compRes1 : {A, B, C : Type} -> ((0 _ : A) -> Type) -> ((0 _ : B) -> Type) -> ((0 _ : A) -> Type)

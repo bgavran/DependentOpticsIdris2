@@ -17,8 +17,21 @@ public export
 DepCoparaCat : (c : Cat) -> (m : DepAct c) -> Cat
 DepCoparaCat c m = MkCat c.obj (DepCoparaMor c m)
 
+
+CoparaCart : Cat
+CoparaCart = DepCoparaCat TypeCat CartAction
+
+ClosedLensToCoPara : {A, B, A', B': Type}
+-> (A -> (B, B' -> A')) -> (arr CoparaCart) A B
+ClosedLensToCoPara cl = MkDepCoparaMor (B' -> A') cl
+
 DepCoparaCart : Cat
 DepCoparaCart = DepCoparaCat TypeCat DepCartAction
+
+DepclosedLensToDepCoPara : {A, B : Type} -> {A' : A -> Type} -> {B' : B -> Type}
+  -> ((a : A) -> (b : B ** B' b -> A' a)) -> (arr DepCoparaCart) A B
+DepclosedLensToDepCoPara cl = (MkDepCoparaMor (\b => B' b -> A' ?aa) ?ff)
+
 
 
 -- ff : (x -> y) -> (arr DepCoparaCart) x y
