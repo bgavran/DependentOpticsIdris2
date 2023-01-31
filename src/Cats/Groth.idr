@@ -15,7 +15,7 @@ record GrothMor (c : Cat) (d : IndCat c) (s : GrothObj c d) (t : GrothObj c d) w
   baseMor : c.arr s.baseObj t.baseObj
   fibMor : (d.mapObj s.baseObj).arr
            s.fibObj
-           (d.mapMor {x = s.baseObj} {y = t.baseObj} (baseMor) t.fibObj)
+           (d.mapMor {x = s.baseObj} {y = t.baseObj} baseMor t.fibObj)
 
 public export
 groth : (c : Cat) -> IndCat c -> Cat
@@ -35,6 +35,11 @@ public export
 DLens : Cat
 DLens = FLens TypeCat FamInd
 
+-- dep lenses - FLens
+-- closed dep. lenses - ?
+
+-- lenses - FLens
+-- closed lenses - optic
 
 -- example of a dependent adapter
 f : arr DepAdt (MkGrothObj Nat (Vect0 Bool)) (MkGrothObj Nat (Vect0 Bool))

@@ -52,8 +52,13 @@ public export
 FamInd : IndCat TypeCat
 FamInd = MkIndCat FamCat (\f => (. f))
 
--- For a type `a` there is a category of `a`-indexed types
+-- public export
+-- FamhalfCat : Type -> Cat
+-- FamhalfCat a = MkCat
+--   (a -> Type)
+--   ?xx -- (\a', b' => ?ll)-- (0 x : a) -> a' x) -- (0 x : a) -> a' x -> b' x)
 
+-- For a type `a` there is a category of `0 : a`-indexed types
 public export
 Fam0Cat : Type -> Cat
 Fam0Cat a = MkCat

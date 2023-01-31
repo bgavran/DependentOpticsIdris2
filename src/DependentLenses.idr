@@ -1,7 +1,5 @@
 module DependentLenses
 
-import CartesianLenses
-
 public export
 record Cont where
   constructor MkCont
@@ -17,6 +15,12 @@ record DepLens (A, B : Cont) where
 public export
 Const : Type -> Type -> Cont
 Const ty1 ty2 = MkCont ty1 (const ty2)
+
+public export
+record CartLens (A, A', B, B' : Type) where
+  constructor MkCartLens
+  fw : A -> B
+  bw : (A, B') -> A'
 
 CartLensToDepLens : {A, A', B, B' : Type} -> CartLens A A' B B' -> DepLens (Const A A') (Const B B')
 CartLensToDepLens (MkCartLens f f') = MkDepLens f (curry f')

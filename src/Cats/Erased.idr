@@ -40,3 +40,9 @@ record Exists0 (type : Type) (p : (0 _ : type) -> Type) where
   constructor Ev
   0 fst : type
   snd : p fst
+
+public export
+record Subset0 (type : Type) (0 p : (0 _ : type) -> Type ) where
+  constructor El
+  fst : type
+  0 snd : p fst

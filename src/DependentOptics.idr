@@ -6,14 +6,6 @@ import Optics
 import CoPara
 import Erased
 
-{-
-record DepOptic2 (A, B : Cont) where
-  constructor MkDepOptic2
-  res2 : shp B -> Type
-  fw2 : (a : shp A) -> (b : shp B ** res2 b)
-  -- bw2 : {0 a : shp A} -> res2 a -> pos B (fst (fw2 a))  -> pos A a
--}
-
 public export
 record DepOptic (A, B : Cont) where
   constructor MkDepOptic
@@ -40,14 +32,14 @@ compDepOptic f g = MkDepOptic
 DepLensToDepOptic : {A, B : Cont} -> DepLens A B -> DepOptic A B
 DepLensToDepOptic (MkDepLens f f') = MkDepOptic
   (MkDepCoPara
-  (\a => (a0 : shp A ** a = a0))
-  (\a => (f a, (a ** Refl))))
+    (\a => (a0 : shp A ** a = a0))
+    (\a => (f a, (a ** Refl))))
   (\a0, (a ** p) => rewrite p in f' a)
 
 
 ClosedDepLensToDepCopara : {A, B : Cont} -> ClosedDepLens A B -> DepCoPara (shp A) (shp B)
-ClosedDepLensToDepCopara (MkClosedDepLens cl) =
-  MkDepCoPara (\a => (pos B) (fst (cl a)) -> (pos A) a)
+ClosedDepLensToDepCopara (MkClosedDepLens cl) = MkDepCoPara
+  (\a => (pos B) (fst (cl a)) -> (pos A) a)
   (\a => (fst (cl a) , snd (cl a)))
 
 ClosedDepLensToDepOptic : {A, B : Cont} -> ClosedDepLens A B -> DepOptic A B

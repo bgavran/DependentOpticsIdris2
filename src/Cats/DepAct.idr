@@ -1,5 +1,7 @@
 module Cats.DepAct
 
+import Data.DPair
+
 import Cats.Cats
 import Cats.Groth
 import Cats.Erased
@@ -39,7 +41,7 @@ DepCart0Action = MkDepAct Fam0Ind Exists0
 public export
 record OverDepAct (c : Cat) (action : DepAct c) (d : IndCat c) where
   constructor MkOverDepAct
-  actt : (0 y : obj c) -- an output y:C
+  actt : (y : obj c) -- an output y:C
       -> (m : obj (action.bund.mapObj y)) -- something over y that acts on it
       -> (y' : obj ((fibOp c d).mapObj y)) -- something over y
       ->       obj ((fibOp c d).mapObj (action.act y m)) -- something over m * y
@@ -55,13 +57,13 @@ i _ _ y' = \dp => y' (fst dp) -- by only indexing over y0 using y'
 
 public export
 CospanOverAct : OverDepAct TypeCat DepCartAction FamInd
-CospanOverAct = MkOverDepAct (\y, _ => (. fst))
+CospanOverAct = MkOverDepAct (\y, m, yy', dpl => Exists m) -- (. fst))
 -- CospanOverAct = MkOverDepAct (\y, _, yy', dpl => yy' (fst dpl))
   -- (\y, m => mapMor FamInd fst)
 
 public export
-Cospan0OverAct : OverDepAct TypeCat CartAction Fam0Ind
-Cospan0OverAct = MkOverDepAct (\_, m, f, g => (m, f (fst g)))
+Cospan0OverAct : OverDepAct TypeCat DepCart0Action Fam0Ind
+Cospan0OverAct = MkOverDepAct (\y, m, y', dp => (y' (fst dp), m (fst dp))) -- (y' (fst dp), m (fst dp))) --  --(m, f (fst g)))
 
 -- project out first element
 -- Whatever is over y is going to also be over (y, y'), for any y'

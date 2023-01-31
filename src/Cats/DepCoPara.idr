@@ -1,6 +1,7 @@
 module Cats.DepCoPara
 
 import Data.Vect
+import Data.DPair
 
 import Cats.Cats
 import Cats.Groth
@@ -10,13 +11,15 @@ import Cats.Erased
 public export
 record DepCoparaMor (c : Cat) (m : DepAct c) (A, B : c.obj) where
   constructor MkDepCoparaMor
-  0 M : (m.bund.mapObj B).obj
+  M : (m.bund.mapObj B).obj
   f : c.arr A (m.act B M)
+  {-
+  (a : A) -> (b : B ** B' b -> A' a)
+ -}
 
 public export
 DepCoparaCat : (c : Cat) -> (m : DepAct c) -> Cat
 DepCoparaCat c m = MkCat c.obj (DepCoparaMor c m)
-
 
 CoparaCart : Cat
 CoparaCart = DepCoparaCat TypeCat CartAction
@@ -30,7 +33,9 @@ DepCoparaCart = DepCoparaCat TypeCat DepCartAction
 
 DepclosedLensToDepCoPara : {A, B : Type} -> {A' : A -> Type} -> {B' : B -> Type}
   -> ((a : A) -> (b : B ** B' b -> A' a)) -> (arr DepCoparaCart) A B
-DepclosedLensToDepCoPara cl = (MkDepCoparaMor (\b => B' b -> A' ?aa) ?ff)
+DepclosedLensToDepCoPara cl = MkDepCoparaMor
+  (\b => (Exists $ \a0 => (fst (cl a0) = b, B' b -> A' a0)))
+  (\a => (fst (cl a) ** (a `Evidence` (Refl, snd (cl a)))))
 
 
 

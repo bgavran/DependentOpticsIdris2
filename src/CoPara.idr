@@ -10,9 +10,6 @@ public export
 graph : (a -> b) -> (a -> (b, a))
 graph f a = (f a, a)
 
-graphCoPara : {A, B : Type} -> (A -> B) -> CoPara A B
-graphCoPara f = MkCoPara A (graph f)
-
 public export
 sigmaPi : {A, B : Type} -> ((0 _ : A) -> (0 _ : B) -> Type) -> Type
 sigmaPi res = (a : A) -> (b : B ** res a b)
@@ -23,11 +20,6 @@ record DepCoPara (A, B : Type) where
   res1 : A -> Type
   fw1 : (a : A) -> (B, res1 a)
 
--- Important! We're still just over A!
-public export
-compRes1 : {A, B, C : Type} -> ((0 _ : A) -> Type) -> ((0 _ : B) -> Type) -> ((0 _ : A) -> Type)
-compRes1 r1 _ = r1
-
 -- this looks really complex just because I can't use let bindings in Idris.
 public export
 compDepCoPara : {A, B, C : Type} -> DepCoPara A B -> DepCoPara B C -> DepCoPara A C
@@ -36,6 +28,7 @@ compDepCoPara f g = MkDepCoPara
   (\a => (fst ((fw1 g) (fst ((fw1 f) a))), (snd ((fw1 f) a), snd ((fw1 g) (fst ((fw1 f) a))))))
 
 
+{-
 public export
 record DepCoParaM (M : Type -> Type -> Type) (A, B : Type) where
   constructor MkDepCoParaM
