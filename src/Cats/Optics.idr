@@ -47,10 +47,10 @@ Grate = OpticCat TypeCat TypeCat TypeCat HomAction CartAction
 AffTraversal : Cat
 AffTraversal = OpticCat TypeCat TypeCat (productCat TypeCat TypeCat)  AffTraversalAct AffTraversalAct
 
-ArbHom : {A, B : AdtObj}
-  -> (arr AffTraversal) A B
-  -> Type
-ArbHom (MkDepCoparaMor (MkGrothObj (m, n) (m', n') ** (s, s')) (MkGrothMor f b)) = ?ee
+-- ArbHom : {A, B : AdtObj}
+--   -> (arr AffTraversal) A B
+--   -> Type
+-- ArbHom (MkDepCoparaMor (MkGrothObj (m, n) (m', n') ** (s, s')) (MkGrothMor f b)) = ?ee
 
 LensToCartOptic : {A, B : AdtObj}
   -> (arr Lens) (AdtObjToConstCont A) (AdtObjToConstCont B)
@@ -80,6 +80,7 @@ DepAdtToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
   $ MkGrothMor
     (\a => (f a, ()))
     (\0 a0, x => f' a0 (fst x))
+
 
 {-
 -- Prisms can't be made dependent!

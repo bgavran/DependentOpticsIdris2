@@ -27,7 +27,7 @@ DepCoparaCat c d m = MkCat c.obj (DepCoparaMor c d m)
 
 public export
 CoparaCartesian : Cat
-CoparaCartesian = DepCoparaCat TypeCat (constCat TypeCat) (e1 CartAction)
+CoparaCartesian = DepCoparaCat TypeCat (constCat TypeCat) (NonDepAct2DepAct CartAction)
 
 -- public export
 -- CoparaNewProd : (d : IndCat TypeCat) -> Cat

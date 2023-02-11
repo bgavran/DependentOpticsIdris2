@@ -136,28 +136,8 @@ TwistedArr c = MkCat
   -- plus proof that f ; s ; f' = r
 
 
-f : DPair a b -> Type
-f = ?ell
-
 public export
 Dep0TwistedArr : Cat
 Dep0TwistedArr = MkCat
   (p : Cont0 ** ((x : p.baseObj) -> (p.fibObj) x)) -- we probably don't need 0 here?
   (\a, b => (arr DepAdt) (fst a) (fst b)) -- + condition that f ; s ; f' = r
-
-{-
-Only works for TypeCat
-Objects contain three things:
-(a : Type, a' : a -> Type, s : (x : a) -> a' x)
--}
-public export
-DepTwistedArr : Cat
-DepTwistedArr = MkCat
-  (p : Cont ** ((x : p.baseObj) -> (p.fibObj) x))
-  (\a, b => (arr DepLens) (fst a) (fst b)) -- + condition that f ; s ; f' = r
-  {-
-  DPair
-    (a.baseObj -> b.baseObj)
-    (\f => (x : a.baseObj) -> b.fibObj (f x) -> a.fibObj x))
-    -}
-  -- such

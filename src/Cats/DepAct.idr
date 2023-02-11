@@ -39,18 +39,18 @@ Fam0IndAction = DepAct TypeCat Fam0Ind
 
 -- better name? Going to number them
 public export
-e1 : NonDepAct c m -> DepAct c (constCat m)
-e1 = id
+NonDepAct2DepAct : NonDepAct c m -> DepAct c (constCat m)
+NonDepAct2DepAct = id
 
 -- better name also
-public export
-e2 : FamIndAction -> DepAct TypeCat FamInd
-e2 = id
+-- public export
+-- e2 : FamIndAction -> DepAct TypeCat FamInd
+-- e2 = id
 
 -- better name also
-public export
-e3 : FamIndAction -> DepAct TypeCat FamInd
-e3 = id
+-- public export
+-- e3 : FamIndAction -> DepAct TypeCat FamInd
+-- e3 = id
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Some concrete TypeCat actions
@@ -149,7 +149,6 @@ LensNonDepAct (MkDepAct ac) = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') =
   (Pair a b)
   (ac a' b'))
 
--- Twisted arrow!
 -- -- What about dependent adapters being acted on by dependent lenses?
 -- DepAdtNonDepActL : NonDepAct TypeCat TypeCat -> NonDepAct DepAdt DepLens
 -- DepAdtNonDepActL (MkDepAct ac) = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => (MkGrothObj
@@ -200,36 +199,6 @@ public export
 CartDOpticAct : (d : IndCat TypeCat) -> Type
 CartDOpticAct d = DepAct (FLens TypeCat Fam0Ind) (ExtendIndCat TypeCat Fam0Ind d)
 
-public export
-e4 : CartDOpticAct d -> DepAct (FLens TypeCat Fam0Ind) (ExtendIndCat TypeCat Fam0Ind d)
-e4 = id
-
 -- public export
--- daProdNew :  (d : IndCat TypeCat) -> CartDOpticAct d
--- daProdNew d = MkDepAct $
---     \aa', bm => MkGrothObj ?aa ?bb -- ((a : aa'.baseObj ** (bm a, Bool))) ?ert -- (\dp => aa'.fibObj (fst dp)) -- wrong?
-  -- (Pair aa'.baseObj bm) (\ab => (bm, aa'.fibObj (fst ab)))) -- (\0 bb => (bm, go.fibObj bb)))
-
--- public export
--- daProd :  CartDOpticAct FamInd
--- daProd = ?ee
-  -- (\aa', bm => MkGrothObj (Pair aa'.baseObj bm) (\ab => (bm, aa'.fibObj (fst ab)))) -- (\0 bb => (bm, go.fibObj bb)))
-
-
-  {-
-public export
-daCoprod :  CartDOpticAct
-daCoprod = MkDepAct $
-  \aa', bm => MkGrothObj (Either aa'.baseObj bm)
-  (\bb => Either bm ?zz)
-
-
-public export
-GrothAct : (c : Cat)
-  -> (bnd : IndCat c)
-  -> (m : DepAct c bnd)
-  -> (d : IndCat c)
-  -> OverDepAct c bnd m d
-  -> DepAct (FLens c d) (ExtendIndCat c d bnd)
-GrothAct c bnd m d doa = MkDepAct
-  (\go, m' => MkGrothObj (m.act (baseObj go) m') (doa.actt (baseObj go) m' (fibObj go)))
+-- e4 : CartDOpticAct d -> DepAct (FLens TypeCat Fam0Ind) (ExtendIndCat TypeCat Fam0Ind d)
+-- e4 = id

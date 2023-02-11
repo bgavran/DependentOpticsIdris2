@@ -19,10 +19,10 @@ public export
 Functor : Cat -> Cat -> Type
 Functor c d = c.obj -> d.obj
 
--- Functors are defined by their action on objects
-public export
-FunctorCat : (c, d : Cat) -> Cat
-FunctorCat c d = MkCat (Functor c d) (\_, _ => Bool)
+---- Functors are defined by their action on objects
+--public export
+--FunctorCat : (c, d : Cat) -> Cat
+--FunctorCat c d = MkCat (Functor c d) (\_, _ => Bool)
 
 -- An indexed category is a functor C^op -> Cat
 public export
@@ -86,6 +86,12 @@ Fam0Cat a = MkCat
   (\a', b' => (0 x : a) -> a' x -> b' x)
 
 
+-- 0 is a functor Type -> Type
+public export
+Fam0Ind : IndCat TypeCat
+Fam0Ind = MkIndCat Fam0Cat (\f, a', x => a' (f x)) -- (\a => (. a))
+
+
 -- constEither : (a, b : Type) -> (Either a b -> Type)
 -- constEither a b (Left _)  = a
 -- constEither a b (Right _) = b
@@ -94,8 +100,3 @@ Fam0Cat a = MkCat
 -- oo (Left _) = id
 -- oo (Right _) = id
 
-
--- 0 is a functor Type -> Type
-public export
-Fam0Ind : IndCat TypeCat
-Fam0Ind = MkIndCat Fam0Cat (\f, a', x => a' (f x)) -- (\a => (. a))
