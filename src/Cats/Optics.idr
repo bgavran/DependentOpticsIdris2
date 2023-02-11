@@ -6,24 +6,26 @@ import Cats.Erased
 import Cats.DepAct
 import Cats.DepCoPara
 import Cats.DepPara
+import Cats.Misc
 
 -- Tw(M) acts on Adapters!!!
--- Tw(M) is sections of Adapters?
+-- action induced by reparameterisation along tw(M) -> MxM^op
 OpticAct : (c : Cat)
   -> (d : Cat)
   -> (m : Cat)
   -> (l : NonDepAct c m)
   -> (r : NonDepAct d m)
   -> NonDepAct (Adt c d) (TwistedArr m)
-OpticAct c d m l r = MkDepAct $ \(MkGrothObj x x'), (m ** _) =>
-  (MkGrothObj ((act l) x m.baseObj) ((act r) x' m.fibObj))
+OpticAct c d m l r = MkDepAct $ \xx', (m ** _) =>
+  (MkGrothObj ((act l) xx'.baseObj m.baseObj) ((act r) xx'.fibObj m.fibObj))
 
--- -- rewrite this just using  AdtNonDepAct, see how it doesn't work
--- AlmostOpticCat :
---      (l : NonDepAct TypeCat TypeCat)
---   -> (r : NonDepAct TypeCat TypeCat)
---   -> Cat
--- AlmostOpticsCat = DepCoparaCat (Adt TypeCat TypeCat) (constCat (Adt TypeCat TypeCat)) ()
+DepOpticAct : (a : NonDepAct DepAdt DepAdt)
+  -> NonDepAct DepAdt Dep0TwistedArr
+DepOpticAct a = MkDepAct $ \xx', (m ** _) => (act a) xx' m
+
+DepOpticCat : (a : NonDepAct DepAdt DepAdt)
+  -> Cat
+DepOpticCat a = DepCoparaCat DepAdt (constCat Dep0TwistedArr) (DepOpticAct a)
 
 OpticCat : (c : Cat)
   -> (d : Cat)
@@ -33,51 +35,60 @@ OpticCat : (c : Cat)
   -> Cat
 OpticCat c d m l r = DepCoparaCat (Adt c d) (constCat (TwistedArr m)) (OpticAct c d m l r)
 
-BimorphicLensToOptic :
-  --    (l : NonDepAct TypeCat TypeCat)
-  -- -> (r : NonDepAct TypeCat TypeCat)
-     (a, b, a', b' : Type)
-  -> (arr BimorphicLens) (MkGrothObj a a') (MkGrothObj b b')
-  -> (arr (OpticCat TypeCat TypeCat TypeCat CartAction CartAction)) (MkGrothObj a a') (MkGrothObj b b')
-BimorphicLensToOptic a b a' b' (MkGrothMor f f') = MkDepCoparaMor
-  (MkGrothObj a a ** ?xy)
+CoCartOptic : Cat
+CoCartOptic = OpticCat TypeCat TypeCat TypeCat CoCartAction CoCartAction
+
+CartOptic : Cat
+CartOptic = OpticCat TypeCat TypeCat TypeCat CartAction CartAction
+
+Grate : Cat
+Grate = OpticCat TypeCat TypeCat TypeCat HomAction CartAction
+
+AffTraversal : Cat
+AffTraversal = OpticCat TypeCat TypeCat (productCat TypeCat TypeCat)  AffTraversalAct AffTraversalAct
+
+ArbHom : {A, B : AdtObj}
+  -> (arr AffTraversal) A B
+  -> Type
+ArbHom (MkDepCoparaMor (MkGrothObj (m, n) (m', n') ** (s, s')) (MkGrothMor f b)) = ?ee
+
+LensToCartOptic : {A, B : AdtObj}
+  -> (arr Lens) (AdtObjToConstCont A) (AdtObjToConstCont B)
+  -> (arr CartOptic) A B
+LensToCartOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
+  (MkGrothObj a.baseObj a.baseObj ** id)
   $ MkGrothMor
-    (\a => (f a, ?ee))
+    (graph f)
     (f' . swap)
 
-record NonDepOpticMor
-  (c : Cat)
-  (d : Cat)
-  (m : Cat)
-  (l : NonDepAct c m)
-  (r : NonDepAct d m)
-  (a, b : c.obj)
-  (a', b' : d.obj)
-  where
-  constructor MkNonDepOpticMor
-  fw : DepCoparaMor c (constCat m) l a b
-  bw : DepParaMor d (constCat m) r b' a'
-  resEqual : (M fw) = (M bw)
+DepLensToDepOptic : {A, B : Cont0}
+  -> (arr DepLens) (Cont0ToCont A) (Cont0ToCont B)
+  -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
+DepLensToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
+  (MkGrothObj a.baseObj (Unerase a.baseObj) ** \a0 => MkUnerase a0 Refl)
+  $ MkGrothMor
+    (graph f)
+    (\0 _ => lm) -- without the where clause Idris complains
+    where lm : (B .fibObj (f a0), Unerase (a .baseObj) a0) -> a .fibObj a0
+          lm (b', MkUnerase aRes p) = rewrite p in f' aRes (rewrite (sym p) in b')
 
+DepAdtToDepOptic : {A, B : Cont0}
+  -> (arr DepAdt) A B
+  -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
+DepAdtToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
+  ((MkGrothObj () (\0 _ => ())) ** id)
+  $ MkGrothMor
+    (\a => (f a, ()))
+    (\0 a0, x => f' a0 (fst x))
 
-mor : (a, b, a', b' : Type)
-  -> (arr BimorphicLens) (MkGrothObj a a') (MkGrothObj b b')
-  -> NonDepOpticMor TypeCat TypeCat TypeCat CartAction CartAction a b a' b'
-mor a b a' b' (MkGrothMor f f') = MkNonDepOpticMor
-  (MkDepCoparaMor a (\a => (f a, a)))
-  (MkDepParaMor a (\x => f' (snd x, fst x)))
-  Refl
-
-
-
-CoparaCartAdt : Cat
-CoparaCartAdt = DepCoparaCat (Adt TypeCat TypeCat) (constCat (Adt TypeCat TypeCat)) (e1 (AdtNonDepAct CartAction))
-
--- every optic embeds into Copara(Adt)? But there's more stuff in Copara(Adt)
--- if we add a vertical costate to Copara, we're still in adapters! no information actually flows back.
-CoparaCartDepLensMor :  (a, b, a', b' : Type)
-  -> NonDepOpticMor TypeCat TypeCat TypeCat CartAction CartAction a b a' b'
-  -> (arr CoparaCartAdt) (MkGrothObj a a') (MkGrothObj b b')
-CoparaCartDepLensMor a b a' b' (MkNonDepOpticMor fw bw re) = MkDepCoparaMor
-  (MkGrothObj (M fw) (M bw))
-  (MkGrothMor (f fw) (f bw))
+{-
+-- Prisms can't be made dependent!
+-- forward pass?
+CoCartOpticToDepOptic : {A, B : AdtObj}
+  -> (arr CoCartOptic) A B
+  -> (arr (DepOpticCat CoCartAdt)) (AdtObjToCont0 A) (AdtObjToCont0 B)
+CoCartOpticToDepOptic {A=a} (MkDepCoparaMor ((MkGrothObj rb rf) ** s) (MkGrothMor m b)) = MkDepCoparaMor
+  (MkGrothObj rb (\0 _ => rf) ** s)
+  $ MkGrothMor
+    m
+    (\0 a0 => ?bb)

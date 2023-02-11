@@ -49,7 +49,6 @@ public export
 TypeCat : Cat
 TypeCat = MkCat Type (\a, b => a -> b)
 
-
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Examples of indexed categories
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
@@ -83,8 +82,18 @@ CoKleisliInd = MkIndCat CoKleisliCat (\_ => id) -- it does something on morphism
 public export
 Fam0Cat : Type -> Cat
 Fam0Cat a = MkCat
-  ((0 x : a) -> Type)
+  ((0 x : a) -> Type) -- does this have to be zero?
   (\a', b' => (0 x : a) -> a' x -> b' x)
+
+
+-- constEither : (a, b : Type) -> (Either a b -> Type)
+-- constEither a b (Left _)  = a
+-- constEither a b (Right _) = b
+-- 
+-- oo : {A, B : Type} -> ((x : Either A B) -> (constEither A B) x ->  (constEither A B) x)
+-- oo (Left _) = id
+-- oo (Right _) = id
+
 
 -- 0 is a functor Type -> Type
 public export

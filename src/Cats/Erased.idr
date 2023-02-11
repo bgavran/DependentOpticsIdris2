@@ -1,5 +1,7 @@
 module Cats.Erased
 
+import Data.Either
+
 public export
 data Fin0 : (0 n : Nat) -> Type where
   FZero : Fin0 (S n)
@@ -46,3 +48,11 @@ record Subset0 (type : Type) (0 p : (0 _ : type) -> Type ) where
   constructor El
   fst : type
   0 snd : p fst
+
+mapEither :
+     ((0 _ : a) -> c)
+  -> ((0 _ : b) -> d)
+  -> (e : Either a b)
+  -> Either c d
+mapEither f g (Left a) = Left (f a)
+mapEither f g (Right b) = Right (g b)

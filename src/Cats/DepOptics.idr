@@ -29,8 +29,8 @@ i f a = f a
 
 public export
 DepLensToDepOptic : (A, B : Type)
-  -> (A' : (A) -> Type)
-  -> (B' : (B) -> Type)
+  -> (A' : A -> Type)
+  -> (B' : B -> Type)
   -> (arr DLens) (MkGrothObj A (A')) (MkGrothObj B (B'))
   -> (arr CartDepOptic0) (MkGrothObj A A') (MkGrothObj B B')
 DepLensToDepOptic a b a' b' (MkGrothMor f f') = MkDepCoparaMor
@@ -52,4 +52,4 @@ DepclosedLensToDepOptic : (A, B : Type)
 DepclosedLensToDepOptic a b a' b' cl = MkDepCoparaMor
   (\bVal => (Exists $ \a0 => (fst (cl a0) = bVal, b' bVal -> a' a0)))
   (MkGrothMor (\a => (fst (cl a) ** a `Evidence` (Refl, snd (cl a))))
-  (\x0 => ?bww))
+  (\x => ?bww))

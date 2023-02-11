@@ -1,6 +1,7 @@
 module Cats.DepAct
 
 import Data.DPair
+import Data.Either
 
 import Cats.Cats
 import Cats.Groth
@@ -9,40 +10,161 @@ import Cats.Erased
 -- A dependent action on a category `c` is an indexed category over `c`
 -- with an action of the fibres on their base.
 public export
-record DepAct (c : Cat) where
+record DepAct (c : Cat) (bund : IndCat c) where
   constructor MkDepAct
-  bund : IndCat c
   act : (x : c.obj) -> Functor (bund.mapObj x) c
-  -- we can uncurry this to become a functor from Groth construction to c
+  -- Equivalently a functor from the Grothendieck construction of bund to c
 
--- public export
--- record DepAct2 (c : Cat) where
---   constructor MkDepAct2
---   bund2 : IndCat c
---   act2 : (a : c.obj) -> Functor (bund2.mapObj a) c
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+-- Some types of actions
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
 
 public export
-CartAction : DepAct TypeCat
-CartAction = MkDepAct
-  (MkIndCat (\_ => TypeCat) (\_ => id))
-  (,)
+NonDepAct : (c, m : Cat) -> Type
+NonDepAct c m = DepAct c (constCat m)
+
+public export
+FamIndAction : Type
+FamIndAction = DepAct TypeCat FamInd
+-- includes DPair, Pi
+
+public export
+Fam0IndAction : Type
+Fam0IndAction = DepAct TypeCat Fam0Ind
+-- includes Exists0
+
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+-- Some embeddings. Important for things to resolve in the typechecker
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+
+-- better name? Going to number them
+public export
+e1 : NonDepAct c m -> DepAct c (constCat m)
+e1 = id
+
+-- better name also
+public export
+e2 : FamIndAction -> DepAct TypeCat FamInd
+e2 = id
+
+-- better name also
+public export
+e3 : FamIndAction -> DepAct TypeCat FamInd
+e3 = id
+
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+-- Some concrete TypeCat actions
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+
+public export
+CartAction : NonDepAct TypeCat TypeCat
+CartAction = MkDepAct Pair
+
+public export
+CoCartAction : DepAct TypeCat (constCat TypeCat)
+CoCartAction = MkDepAct Either
+
+public export
+HomAction : DepAct TypeCat (constCat TypeCat)
+HomAction = MkDepAct (\a, b => a -> b)
+
+public export
+Proj2Action : DepAct TypeCat (constCat TypeCat)
+Proj2Action = MkDepAct (\_ => id)
+
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+-- Some other concrete actions
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
 
 
 public export
-DepCartAction : DepAct TypeCat
-DepCartAction = MkDepAct FamInd DPair
+CoCartDepAdt : NonDepAct DepAdt DepAdt
+CoCartDepAdt = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => MkGrothObj
+  (Either a b)
+  (\x => ?bb)
+  --(Either a b)
+  --(Either a' b')
 
 public export
-DepCart0Action : DepAct TypeCat
-DepCart0Action = MkDepAct Fam0Ind Exists0
+CoCartAdt : NonDepAct (Adt TypeCat TypeCat) (Adt TypeCat TypeCat)
+CoCartAdt = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => MkGrothObj
+  (Either a b)
+  (Either a' b')
 
+public export
+AffTraversalAct : NonDepAct TypeCat (productCat TypeCat TypeCat)
+AffTraversalAct = MkDepAct $ \x, (m, n) => Either m (Pair n x)
+
+public export
+DepCartAction : FamIndAction
+DepCartAction = MkDepAct DPair
+
+public export
+DepPiAction : FamIndAction
+DepPiAction = MkDepAct (\x, f => (a : x) -> f a)
+
+public export
+fibreFamAct : NonDepAct TypeCat TypeCat -> NonDepAct (FamCat a) TypeCat
+fibreFamAct f = MkDepAct (\p, b => \a0 => (act f) b (p a0))
+
+public export
+fibreFamAct' : NonDepAct TypeCat TypeCat -> NonDepAct (FamCat a) (FamCat a)
+fibreFamAct' f = MkDepAct (\p, b => \a => (act f) (b a) (p a))
+
+public export
+DepCart0Action : Fam0IndAction
+DepCart0Action = MkDepAct Exists0
+
+
+-- Every monoidal product on Set gives rise to a monoidal product on DepLens
+-- This is given pointwise, see https://arxiv.org/abs/2202.00534
+public export
+DepLensNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct DepLens DepLens
+DepLensNonDepAct (MkDepAct ac) = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => (MkGrothObj
+  (Pair a b)
+  (\x => ac (a' (fst x)) (b' (snd x))))
+
+
+-- Works for dependent adapters too
+public export
+DepAdtNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct DepAdt DepAdt
+DepAdtNonDepAct ac = MkDepAct $ \aa', bb' => (MkGrothObj
+  (Pair aa'.baseObj bb'.baseObj)
+  (\x => (act ac) (aa'.fibObj (fst x)) (bb'.fibObj (snd x))))
+
+
+-- Works for adapters too... but this uses the same action on both places?
+public export
+AdtNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct (Adt TypeCat TypeCat) (Adt TypeCat TypeCat)
+AdtNonDepAct (MkDepAct ac) = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => (MkGrothObj
+  (Pair a b)
+  (ac a' b'))
+  -- (\x => ac (a' (fst x)) (b' (snd x))))
+
+
+-- Works for bimorphic lenses too
+public export
+LensNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct Lens Lens
+LensNonDepAct (MkDepAct ac) = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => (MkGrothObj
+  (Pair a b)
+  (ac a' b'))
+
+-- Twisted arrow!
+-- -- What about dependent adapters being acted on by dependent lenses?
+-- DepAdtNonDepActL : NonDepAct TypeCat TypeCat -> NonDepAct DepAdt DepLens
+-- DepAdtNonDepActL (MkDepAct ac) = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => (MkGrothObj
+--   (Pair a b)
+--   (\x => ac (a' (fst x)) (b' (?bb))))
+
+
+----
 
 -- Data we need to specify the action per fiber
 public export
-record OverDepAct (c : Cat) (action : DepAct c) (d : IndCat c) where
+record OverDepAct (c : Cat) (bund : IndCat c) (action : DepAct c bund) (d : IndCat c) where
   constructor MkOverDepAct
   actt : (y : obj c) -- an output y:C
-      -> (m : obj (action.bund.mapObj y)) -- something over y that acts on it
+      -> (m : obj (bund.mapObj y)) -- something over y that acts on it
       -> (y' : obj ((fibOp c d).mapObj y)) -- something over y
       ->       obj ((fibOp c d).mapObj (action.act y m)) -- something over m * y
 
@@ -56,35 +178,58 @@ i _ _ y' = \dp => y' (fst dp) -- by only indexing over y0 using y'
 -- i y m = (mapMor FamInd) fst -- by only indexing over y0 using y'
 
 public export
-CospanOverAct : OverDepAct TypeCat DepCartAction FamInd
+CospanOverAct : OverDepAct TypeCat FamInd DepCartAction FamInd
 CospanOverAct = MkOverDepAct (\y, m, yy', dpl => Exists m) -- (. fst))
 -- CospanOverAct = MkOverDepAct (\y, _, yy', dpl => yy' (fst dpl))
   -- (\y, m => mapMor FamInd fst)
 
 public export
-Cospan0OverAct : OverDepAct TypeCat DepCart0Action Fam0Ind
+Cospan0OverAct : OverDepAct TypeCat Fam0Ind DepCart0Action Fam0Ind
 Cospan0OverAct = MkOverDepAct (\y, m, y', dp => (y' (fst dp), m (fst dp))) -- (y' (fst dp), m (fst dp))) --  --(m, f (fst g)))
 
--- project out first element
--- Whatever is over y is going to also be over (y, y'), for any y'
--- not used in function below because idris then doesn't reduce
-ExtendIndCat : (c : Cat) -> (d : IndCat c) -> (m : IndCat c) -> IndCat (FLens c d)
-ExtendIndCat c d m = MkIndCat (m.mapObj . baseObj) (m.mapMor . baseMor)
-
--- drops the base, FamInd is here two times
--- FamInd is inside DepAct
+-- "Whatever is over y is going to also be over (y, y'), for any y'"
+-- Given two indexed categories d and bnd over c, it creates an indexed category over FLens c d using only bnd (ignoring d)
 public export
--- TODO refactor this
-GrothAct : (c : Cat) ->  (m : DepAct c) -> (d : IndCat c)
-          -> OverDepAct c m d
-          -> DepAct (FLens c d)
-GrothAct c m d doa = MkDepAct
-  -- what this says is that the things that can act on (x, x') in D^ are exactly the
-  -- things that can act on x in C (where C <-- D^)
-  -- (MkIndCat ?zii ?zij)
-  (MkIndCat (m.bund.mapObj . baseObj) (m.bund.mapMor . baseMor))
-  -- (ExtendIndCat c d m.bund)
-  -- ^ doubly indexed category (i.e. indexed over the total space)
-  (\grrr, m' => MkGrothObj (m.act (baseObj grrr) m') (doa.actt (baseObj grrr) m' (fibObj grrr)))
-  -- (\(MkGrothObj xbase xpoint), m' => MkGrothObj (m.act xbase m') (doa.actt xbase m' xpoint))
-  --(\(MkGrothObj gr grr), m' => (MkGrothObj (m.act gr m') ?el))
+ExtendIndCat : (c : Cat)
+  -> (d : IndCat c) -- Fam0Ind
+  -> (bnd : IndCat c) -- action, plus
+  -> IndCat (FLens c d)
+ExtendIndCat _ _ bnd = MkIndCat (bnd.mapObj . baseObj) (bnd.mapMor . baseMor)
+
+public export
+CartDOpticAct : (d : IndCat TypeCat) -> Type
+CartDOpticAct d = DepAct (FLens TypeCat Fam0Ind) (ExtendIndCat TypeCat Fam0Ind d)
+
+public export
+e4 : CartDOpticAct d -> DepAct (FLens TypeCat Fam0Ind) (ExtendIndCat TypeCat Fam0Ind d)
+e4 = id
+
+-- public export
+-- daProdNew :  (d : IndCat TypeCat) -> CartDOpticAct d
+-- daProdNew d = MkDepAct $
+--     \aa', bm => MkGrothObj ?aa ?bb -- ((a : aa'.baseObj ** (bm a, Bool))) ?ert -- (\dp => aa'.fibObj (fst dp)) -- wrong?
+  -- (Pair aa'.baseObj bm) (\ab => (bm, aa'.fibObj (fst ab)))) -- (\0 bb => (bm, go.fibObj bb)))
+
+-- public export
+-- daProd :  CartDOpticAct FamInd
+-- daProd = ?ee
+  -- (\aa', bm => MkGrothObj (Pair aa'.baseObj bm) (\ab => (bm, aa'.fibObj (fst ab)))) -- (\0 bb => (bm, go.fibObj bb)))
+
+
+  {-
+public export
+daCoprod :  CartDOpticAct
+daCoprod = MkDepAct $
+  \aa', bm => MkGrothObj (Either aa'.baseObj bm)
+  (\bb => Either bm ?zz)
+
+
+public export
+GrothAct : (c : Cat)
+  -> (bnd : IndCat c)
+  -> (m : DepAct c bnd)
+  -> (d : IndCat c)
+  -> OverDepAct c bnd m d
+  -> DepAct (FLens c d) (ExtendIndCat c d bnd)
+GrothAct c bnd m d doa = MkDepAct
+  (\go, m' => MkGrothObj (m.act (baseObj go) m') (doa.actt (baseObj go) m' (fibObj go)))

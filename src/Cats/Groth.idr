@@ -35,21 +35,23 @@ public export
 DepLens : Cat
 DepLens = FLens TypeCat FamInd
 
-BimorphicLens : Cat
-BimorphicLens = FLens TypeCat CoKleisliInd
+public export
+Lens : Cat
+Lens = FLens TypeCat CoKleisliInd
 
-Adt : Cat
-Adt = FLens TypeCat (constCat TypeCat)
+public export
+Adt : (c, d : Cat) -> Cat
+Adt c d = FLens c (constCat d)
 
 
 {-
 The rest of the code implements the following four embeddings:
 
-Adt            --> DepAdt
+Adt            --> DepAdt        <~~ these should too
 constCat           Fam0Ind
 |                   |
 v                   v
-BimorphicLens  --> DepLens
+Lens  --> DepLens       <~~ these have also a closed form
 CoKleisliInd       FamInd
 
 First there is the verbose bit of mapping betweeen the corresponding objects, then the four embeddings:
@@ -72,18 +74,25 @@ public export
 AdtObj : Type
 AdtObj = GrothObj TypeCat (fibOp TypeCat (constCat TypeCat))
 
+public export
+AdtObjGen : (c : Cat) -> Type
+AdtObjGen c = GrothObj c (fibOp c (constCat c))
+
 
 --- %%%% Four kinds of embeddings, actions on objects
 public export
 Cont0ToCont : Cont0 -> Cont
 Cont0ToCont dd = MkGrothObj dd.baseObj (\a => dd.fibObj a)
 
+public export
 AdtObjToConstCont : AdtObj -> ConstCont
 AdtObjToConstCont a = MkGrothObj a.baseObj a.fibObj
 
+public export
 AdtObjToCont0 : AdtObj -> Cont0
 AdtObjToCont0 a = MkGrothObj a.baseObj (\_ => a.fibObj)
 
+public export
 ConstContToCont : ConstCont -> Cont
 ConstContToCont a = MkGrothObj a.baseObj (\_ => a.fibObj)
 
@@ -94,17 +103,61 @@ DepAdtToDepLens : {A, B : Cont0}
 DepAdtToDepLens (MkGrothMor f f') = MkGrothMor f (\a => f' a)
 -- can't completely eta-reduce because of lack of subtyping of erasable types
 
-BimorphicLensToDepLens : {A, B : ConstCont}
-  -> (arr BimorphicLens) A B
+LensToDepLens : {A, B : ConstCont}
+  -> (arr Lens) A B
   -> (arr DepLens) (ConstContToCont A) (ConstContToCont B)
-BimorphicLensToDepLens (MkGrothMor f f') = MkGrothMor f (curry f') -- hmm we need to curry
+LensToDepLens (MkGrothMor f f') = MkGrothMor f (curry f') -- hmm we need to curry
 
-AdtToBimorphicLens : {A, B : AdtObj}
-  -> (arr Adt) A B
-  -> (arr BimorphicLens) (AdtObjToConstCont A) (AdtObjToConstCont B)
-AdtToBimorphicLens (MkGrothMor f f') = MkGrothMor f (\(_, b) => f' b)
+AdtToLens : {A, B : AdtObj}
+  -> (arr (Adt TypeCat TypeCat)) A B
+  -> (arr Lens) (AdtObjToConstCont A) (AdtObjToConstCont B)
+AdtToLens (MkGrothMor f f') = MkGrothMor f (\(_, b) => f' b)
 
 AdtToDepAdt : {A, B : AdtObj}
-  -> (arr Adt) A B
+  -> (arr (Adt TypeCat TypeCat)) A B
   -> (arr DepAdt) (AdtObjToCont0 A) (AdtObjToCont0 B)
 AdtToDepAdt (MkGrothMor f f') = MkGrothMor f (\_ => f')
+
+
+{-
+This is like object-wise sections of adapters and dependent lenses?
+-}
+public export
+TwistedArr : (c : Cat) -> Cat
+TwistedArr c = MkCat
+  (p : AdtObjGen c ** c.arr p.baseObj p.fibObj)
+  (\a, b => (arr (Adt c c)) (fst a) (fst b))
+  {-
+     Pair
+     (c.arr (baseObj $ fst a) (baseObj $ fst b))
+     (c.arr (fibObj $ fst b) (fibObj $ fst a)))
+     -}
+  --(\((a, a') ** r), ((b, b') ** s) => Pair (c.arr a b) (c.arr b' a'))
+  -- plus proof that f ; s ; f' = r
+
+
+f : DPair a b -> Type
+f = ?ell
+
+public export
+Dep0TwistedArr : Cat
+Dep0TwistedArr = MkCat
+  (p : Cont0 ** ((x : p.baseObj) -> (p.fibObj) x)) -- we probably don't need 0 here?
+  (\a, b => (arr DepAdt) (fst a) (fst b)) -- + condition that f ; s ; f' = r
+
+{-
+Only works for TypeCat
+Objects contain three things:
+(a : Type, a' : a -> Type, s : (x : a) -> a' x)
+-}
+public export
+DepTwistedArr : Cat
+DepTwistedArr = MkCat
+  (p : Cont ** ((x : p.baseObj) -> (p.fibObj) x))
+  (\a, b => (arr DepLens) (fst a) (fst b)) -- + condition that f ; s ; f' = r
+  {-
+  DPair
+    (a.baseObj -> b.baseObj)
+    (\f => (x : a.baseObj) -> b.fibObj (f x) -> a.fibObj x))
+    -}
+  -- such
