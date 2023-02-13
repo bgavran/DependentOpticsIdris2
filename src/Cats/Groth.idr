@@ -57,11 +57,11 @@ The rest of the code implements the following four embeddings:
 
 
 
-Adt            --> DepAdt       
+Adt            --> DepAdt
 constCat           Fam0Ind
 |                   |
 v                   v
-Lens  --> DepLens       
+Lens  --> DepLens
 CoKleisliInd       FamInd
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 
@@ -102,6 +102,10 @@ ContToCont0 a = MkGrothObj a.baseObj (\0 a0 => (x : Unerase a.baseObj a0 ** a.fi
 iso : (A : Cont)
   -> (arr DepLens) A (Cont0ToCont (ContToCont0 A))
 iso aCont = MkGrothMor id (\a, (MkUnerase _ pp ** x) => rewrite pp in x)
+
+iso2 : (A : Cont)
+  -> (arr DepLens) (Cont0ToCont (ContToCont0 A)) A
+iso2 aCont = MkGrothMor id (\a, fb => (MkUnerase a Refl ** fb))
 
 public export
 AdtObjToConstCont : AdtObj -> ConstCont
