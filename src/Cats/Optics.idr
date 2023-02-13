@@ -5,7 +5,6 @@ import Cats.Groth
 import Cats.Erased
 import Cats.DepAct
 import Cats.DepCoPara
-import Cats.DepPara
 import Cats.Misc
 
 -- Tw(M) acts on Adapters!!!
@@ -72,8 +71,8 @@ LensToCartOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
   $ MkGrothMor
     (graph f)
     (f' . swap)
-    
---    
+
+--
 LensToClosedForm : {A, B : AdtObj}
   -> (arr Lens) (AdtObjToConstCont A) (AdtObjToConstCont B)
   -> (arr CartOptic) A B
@@ -94,7 +93,7 @@ DepLensToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
     (\0 _ => lm) -- without the where clause Idris complains
     where lm : (B .fibObj (f a0), Unerase (a .baseObj) a0) -> a .fibObj a0
           lm (b', MkUnerase aRes p) = rewrite p in f' aRes (rewrite (sym p) in b')
-          
+
 
 DepLensToClosedForm : {A, B : Cont0}
   -> (arr DepLens) (Cont0ToCont A) (Cont0ToCont B)
@@ -113,8 +112,8 @@ DepAdtToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
   $ MkGrothMor
     (\a => (f a, ()))
     (\0 a0, x => f' a0 (fst x))
-    
-    
+
+
 
 asdf : {A, B : AdtObj}
   -> (arr CoCartOptic) A B
@@ -125,6 +124,8 @@ asdf (MkDepCoparaMor (MkGrothObj rbase rfib ** s) (MkGrothMor fwd bwd)) = MkDepC
     fwd
     wc
     where wc : (0 a0 : A .baseObj) -> Either0 (fwd a0) (\0 _ => B .fibObj) (\0 _ => rfib) -> A .fibObj
-          wc a0 x = case x of 
-           (IsLeft a') => ?ef
-           (IsRight b') => ?er
+          wc a0 x with 0 (fwd a0)
+            wc a0 x | with_pat with (x)
+              wc a0 x | (Left x') | (IsLeft y) = bwd (Left y)
+              wc a0 x | (Right x') | (IsRight y) = bwd (Right y)
+
