@@ -72,6 +72,16 @@ LensToCartOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
   $ MkGrothMor
     (graph f)
     (f' . swap)
+    
+--    
+LensToClosedForm : {A, B : AdtObj}
+  -> (arr Lens) (AdtObjToConstCont A) (AdtObjToConstCont B)
+  -> (arr CartOptic) A B
+LensToClosedForm {A=a} {B=b} (MkGrothMor f f') = MkDepCoparaMor
+  (MkGrothObj a.baseObj (b.fibObj -> a.fibObj) ** (curry f'))
+  $ MkGrothMor
+    (graph f)
+    (\x => (snd x) (fst x))
 
 DepLensToDepOptic : {A, B : Cont0}
   -> (arr DepLens) (Cont0ToCont A) (Cont0ToCont B)
@@ -83,6 +93,16 @@ DepLensToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
     (\0 _ => lm) -- without the where clause Idris complains
     where lm : (B .fibObj (f a0), Unerase (a .baseObj) a0) -> a .fibObj a0
           lm (b', MkUnerase aRes p) = rewrite p in f' aRes (rewrite (sym p) in b')
+          
+
+DepLensToClosedForm : {A, B : Cont0}
+  -> (arr DepLens) (Cont0ToCont A) (Cont0ToCont B)
+  -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
+DepLensToClosedForm {A=a} {B=b} (MkGrothMor f f') = MkDepCoparaMor
+  (MkGrothObj a.baseObj (\0 a0 => b.fibObj (f a0) -> a.fibObj a0) ** f')
+  $ MkGrothMor
+    (graph f)
+    (\0 a0, x => (snd x) (fst x))
 
 DepAdtToDepOptic : {A, B : Cont0}
   -> (arr DepAdt) A B
@@ -92,7 +112,6 @@ DepAdtToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
   $ MkGrothMor
     (\a => (f a, ()))
     (\0 a0, x => f' a0 (fst x))
-
 
 {-
 -- Prisms can't be made dependent!
