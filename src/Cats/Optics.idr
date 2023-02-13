@@ -62,7 +62,7 @@ AffTraversal = OpticCat TypeCat TypeCat (productCat TypeCat TypeCat)  AffTravers
 -- ArbHom : {A, B : AdtObj}
 --   -> (arr AffTraversal) A B
 --   -> Type
--- ArbHom (MkDepCoparaMor (MkGrothObj (m, n) (m', n') ** (s, s')) (MkGrothMor f b)) = ?ee
+-- ArbHom (MkDepCoparaMor (MkGrothObj m n ** s) (MkGrothMor f b)) = ?ee
 
 LensToCartOptic : {A, B : AdtObj}
   -> (arr Lens) (AdtObjToConstCont A) (AdtObjToConstCont B)
@@ -83,11 +83,12 @@ LensToClosedForm {A=a} {B=b} (MkGrothMor f f') = MkDepCoparaMor
     (graph f)
     (\x => (snd x) (fst x))
 
+
 DepLensToDepOptic : {A, B : Cont0}
   -> (arr DepLens) (Cont0ToCont A) (Cont0ToCont B)
   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
 DepLensToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
-  (MkGrothObj a.baseObj (Unerase a.baseObj) ** \a0 => MkUnerase a0 Refl)
+  (MkGrothObj a.baseObj (Unerase a.baseObj) ** (\a => MkUnerase a Refl))
   $ MkGrothMor
     (graph f)
     (\0 _ => lm) -- without the where clause Idris complains
@@ -112,15 +113,18 @@ DepAdtToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
   $ MkGrothMor
     (\a => (f a, ()))
     (\0 a0, x => f' a0 (fst x))
+    
+    
 
-{-
--- Prisms can't be made dependent!
--- forward pass?
-CoCartOpticToDepOptic : {A, B : AdtObj}
+asdf : {A, B : AdtObj}
   -> (arr CoCartOptic) A B
-  -> (arr (DepOpticCat CoCartAdt)) (AdtObjToCont0 A) (AdtObjToCont0 B)
-CoCartOpticToDepOptic {A=a} (MkDepCoparaMor ((MkGrothObj rb rf) ** s) (MkGrothMor m b)) = MkDepCoparaMor
-  (MkGrothObj rb (\0 _ => rf) ** s)
+  -> (arr (DepOpticCat CoCartDepAdt)) (AdtObjToCont0 A) (AdtObjToCont0 B)
+asdf (MkDepCoparaMor (MkGrothObj rbase rfib ** s) (MkGrothMor fwd bwd)) = MkDepCoparaMor
+  (MkGrothObj rbase (\0 _ => rfib) ** s)
   $ MkGrothMor
-    m
-    (\0 a0 => ?bb)
+    fwd
+    wc
+    where wc : (0 a0 : A .baseObj) -> Either0 (fwd a0) (\0 _ => B .fibObj) (\0 _ => rfib) -> A .fibObj
+          wc a0 x = case x of 
+           (IsLeft a') => ?ef
+           (IsRight b') => ?er

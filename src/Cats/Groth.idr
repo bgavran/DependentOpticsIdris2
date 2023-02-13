@@ -95,6 +95,10 @@ public export
 Cont0ToCont : Cont0 -> Cont
 Cont0ToCont dd = MkGrothObj dd.baseObj (\a => dd.fibObj a)
 
+-- public export
+-- ContToCont : Cont -> Cont0
+-- ContToCont (MkGrothObj a a') = MkGrothObj a (Unerase a)
+
 public export
 AdtObjToConstCont : AdtObj -> ConstCont
 AdtObjToConstCont a = MkGrothObj a.baseObj a.fibObj
@@ -141,14 +145,14 @@ TwistedArr c = MkCat
 
 public export
 TwistedArrProj : (c : Cat) -> Functor (TwistedArr c) (Adt c c)
-TwistedArrProj c = \(oo ** _) => oo
+TwistedArrProj c = fst
 
 public export
 Dep0TwistedArr : Cat
 Dep0TwistedArr = MkCat
-  (p : Cont0 ** ((x : p.baseObj) -> (p.fibObj) x)) -- we probably don't need 0 here?
+  (p : Cont0 ** ((x : p.baseObj) -> (p.fibObj) x))
   (\a, b => (arr DepAdt) (fst a) (fst b)) -- + condition that f ; s ; f' = r
 
 public export
 Dep0TwistedArrProj : Functor Dep0TwistedArr DepAdt
-Dep0TwistedArrProj = \(oo ** _) => oo
+Dep0TwistedArrProj = fst

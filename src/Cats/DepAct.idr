@@ -108,10 +108,17 @@ CoCartAdt : NonDepAct (Adt TypeCat TypeCat) (Adt TypeCat TypeCat)
 CoCartAdt = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => MkGrothObj
   (Either a b)
   (Either a' b')
+  
+  
+public export
+CoCartDepAdt : NonDepAct DepAdt DepAdt
+CoCartDepAdt = MkDepAct $ \a, b => MkGrothObj
+  (Either (a.baseObj) (b.baseObj))
+  (\x => Either0 x (a.fibObj) (b.fibObj))
 
 public export
 AffTraversalAct : NonDepAct TypeCat (productCat TypeCat TypeCat)
-AffTraversalAct = MkDepAct $ \x, (m, n) => Either m (Pair n x)
+AffTraversalAct = MkDepAct $ \x, mn => Either (fst mn) (Pair (snd mn) x)
 
 public export
 DepCartAction : FamIndAction
