@@ -56,3 +56,10 @@ mapEither :
   -> Either c d
 mapEither f g (Left a) = Left (f a)
 mapEither f g (Right b) = Right (g b)
+
+
+public export
+record Unerase (A : Type) (0 a : A) where
+  constructor MkUnerase
+  aRes : A
+  p : a = aRes

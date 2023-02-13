@@ -19,6 +19,7 @@ public export
 Functor : Cat -> Cat -> Type
 Functor c d = c.obj -> d.obj
 
+
 ---- Functors are defined by their action on objects
 --public export
 --FunctorCat : (c, d : Cat) -> Cat
@@ -31,6 +32,10 @@ record IndCat (c : Cat) where
   mapObj : c.obj -> Cat
   mapMor : {x, y : c.obj} -> c.arr x y -> Functor (mapObj y) (mapObj x)
 -- to rewrite indexed category as a functor we also need to write the category of categories as a category
+
+public export
+IndFunctor : (c : Cat) -> (f, g : IndCat c) -> Type
+IndFunctor c f g = (x : c.obj) -> Functor ((mapObj f) x) ((mapObj g) x)
 
 public export
 constCat : {c : Cat} -> (d : Cat) -> IndCat c
@@ -90,13 +95,3 @@ Fam0Cat a = MkCat
 public export
 Fam0Ind : IndCat TypeCat
 Fam0Ind = MkIndCat Fam0Cat (\f, a', x => a' (f x)) -- (\a => (. a))
-
-
--- constEither : (a, b : Type) -> (Either a b -> Type)
--- constEither a b (Left _)  = a
--- constEither a b (Right _) = b
--- 
--- oo : {A, B : Type} -> ((x : Either A B) -> (constEither A B) x ->  (constEither A B) x)
--- oo (Left _) = id
--- oo (Right _) = id
-

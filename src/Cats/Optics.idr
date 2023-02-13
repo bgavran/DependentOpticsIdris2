@@ -16,12 +16,24 @@ OpticAct : (c : Cat)
   -> (l : NonDepAct c m)
   -> (r : NonDepAct d m)
   -> NonDepAct (Adt c d) (TwistedArr m)
-OpticAct c d m l r = MkDepAct $ \xx', (m ** _) =>
-  (MkGrothObj ((act l) xx'.baseObj m.baseObj) ((act r) xx'.fibObj m.fibObj))
+OpticAct c d m l r = DepActReparam
+  (Adt c d)
+  (constCat (Adt m m))
+  (constCat (TwistedArr m))
+  (\_ => TwistedArrProj m) $ TwoActionsToAdtAction c d m m l r
+-- the implementation above essentially does this:
+--MkDepAct $ \xx', (m ** _) =>
+--  (MkGrothObj ((act l) xx'.baseObj m.baseObj) ((act r) xx'.fibObj m.fibObj))
 
 DepOpticAct : (a : NonDepAct DepAdt DepAdt)
   -> NonDepAct DepAdt Dep0TwistedArr
-DepOpticAct a = MkDepAct $ \xx', (m ** _) => (act a) xx' m
+DepOpticAct a = DepActReparam
+  DepAdt
+  (constCat DepAdt)
+  (constCat (Dep0TwistedArr))
+  (\_ => Dep0TwistedArrProj)
+  a
+--MkDepAct $ \xx', (m ** _) => (act a) xx' m
 
 DepOpticCat : (a : NonDepAct DepAdt DepAdt)
   -> Cat

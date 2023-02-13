@@ -27,6 +27,13 @@ public export
 FLens : (c : Cat) -> (f : IndCat c) -> Cat
 FLens c f = groth c (fibOp c f)
 
+
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+-- Four kinds of F-lenses:
+-- Adapters, Dependent adapters
+-- Lenses, Dependent lenses
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+
 public export
 DepAdt : Cat
 DepAdt = FLens TypeCat Fam0Ind
@@ -45,14 +52,18 @@ Adt c d = FLens c (constCat d)
 
 
 {-
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
 The rest of the code implements the following four embeddings:
 
-Adt            --> DepAdt        <~~ these should too
+
+
+Adt            --> DepAdt       
 constCat           Fam0Ind
 |                   |
 v                   v
-Lens  --> DepLens       <~~ these have also a closed form
+Lens  --> DepLens       
 CoKleisliInd       FamInd
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
 
 First there is the verbose bit of mapping betweeen the corresponding objects, then the four embeddings:
 -}
@@ -127,17 +138,17 @@ TwistedArr : (c : Cat) -> Cat
 TwistedArr c = MkCat
   (p : AdtObjGen c ** c.arr p.baseObj p.fibObj)
   (\a, b => (arr (Adt c c)) (fst a) (fst b))
-  {-
-     Pair
-     (c.arr (baseObj $ fst a) (baseObj $ fst b))
-     (c.arr (fibObj $ fst b) (fibObj $ fst a)))
-     -}
-  --(\((a, a') ** r), ((b, b') ** s) => Pair (c.arr a b) (c.arr b' a'))
-  -- plus proof that f ; s ; f' = r
 
+public export
+TwistedArrProj : (c : Cat) -> Functor (TwistedArr c) (Adt c c)
+TwistedArrProj c = \(oo ** _) => oo
 
 public export
 Dep0TwistedArr : Cat
 Dep0TwistedArr = MkCat
   (p : Cont0 ** ((x : p.baseObj) -> (p.fibObj) x)) -- we probably don't need 0 here?
   (\a, b => (arr DepAdt) (fst a) (fst b)) -- + condition that f ; s ; f' = r
+
+public export
+Dep0TwistedArrProj : Functor Dep0TwistedArr DepAdt
+Dep0TwistedArrProj = \(oo ** _) => oo
