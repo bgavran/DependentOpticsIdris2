@@ -115,10 +115,10 @@ DepAdtToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
 
 
 
-asdf : {A, B : AdtObj}
+PrismToDepPrism : {A, B : AdtObj}
   -> (arr CoCartOptic) A B
   -> (arr (DepOpticCat CoCartDepAdt)) (AdtObjToCont0 A) (AdtObjToCont0 B)
-asdf (MkDepCoparaMor (MkGrothObj rbase rfib ** s) (MkGrothMor fwd bwd)) = MkDepCoparaMor
+PrismToDepPrism (MkDepCoparaMor (MkGrothObj rbase rfib ** s) (MkGrothMor fwd bwd)) = MkDepCoparaMor
   (MkGrothObj rbase (\0 _ => rfib) ** s)
   $ MkGrothMor
     fwd

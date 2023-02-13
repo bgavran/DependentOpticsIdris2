@@ -95,9 +95,13 @@ public export
 Cont0ToCont : Cont0 -> Cont
 Cont0ToCont dd = MkGrothObj dd.baseObj (\a => dd.fibObj a)
 
--- public export
--- ContToCont : Cont -> Cont0
--- ContToCont (MkGrothObj a a') = MkGrothObj a (Unerase a)
+public export
+ContToCont0 : Cont -> Cont0
+ContToCont0 a = MkGrothObj a.baseObj (\0 a0 => (x : Unerase a.baseObj a0 ** a.fibObj (aRes x)))
+
+iso : (A : Cont)
+  -> (arr DepLens) A (Cont0ToCont (ContToCont0 A))
+iso aCont = MkGrothMor id (\a, (MkUnerase _ pp ** x) => rewrite pp in x)
 
 public export
 AdtObjToConstCont : AdtObj -> ConstCont
