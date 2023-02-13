@@ -1,6 +1,6 @@
 module Optics
 
-import CartesianLenses
+import DependentLenses
 import CoPara
 import Para
 

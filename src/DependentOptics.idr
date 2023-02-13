@@ -1,10 +1,9 @@
 module DependentOptics
 
-import CartesianLenses
 import DependentLenses
 import Optics
 import CoPara
-import Erased
+import Cats.Erased
 
 public export
 record CartDepOptic (A, B : Cont) where
@@ -38,7 +37,7 @@ record Unerase (A : Type) (0 a : A) where
 DepLensToDepOptic : {A, B : Cont} -> DepLens A B -> CartDepOptic A B
 DepLensToDepOptic (MkDepLens f f') = MkCartDepOptic
   (MkCartDepCoPara
-    (\a => Unerase (shp A) a)
+    (\a => DependentOptics.Unerase (shp A) a)
     (\a => (f a, (MkUnerase a Refl))))
   (\a0, (MkUnerase a p) => ?ee) -- rewrite p in f' a)
 
