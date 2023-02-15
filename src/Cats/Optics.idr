@@ -34,7 +34,6 @@ DepOpticAct a = DepActReparam
   (constCat (Dep0TwistedArr))
   (\_ => Dep0TwistedArrProj)
   a
---MkDepAct $ \xx', (m ** _) => (act a) xx' m
 
 DepOpticCat : (a : NonDepAct DepAdt DepAdt)
   -> Cat
