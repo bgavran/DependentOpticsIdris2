@@ -108,8 +108,8 @@ CoCartAdt : NonDepAct (Adt TypeCat TypeCat) (Adt TypeCat TypeCat)
 CoCartAdt = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => MkGrothObj
   (Either a b)
   (Either a' b')
-  
-  
+
+
 public export
 CoCartDepAdt : NonDepAct DepAdt DepAdt
 CoCartDepAdt = MkDepAct $ \a, b => MkGrothObj

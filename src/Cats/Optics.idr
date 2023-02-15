@@ -113,7 +113,33 @@ DepAdtToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
     (\a => (f a, ()))
     (\0 a0, x => f' a0 (fst x))
 
+dia : Either a a -> a
+dia (Left x) = x
+dia (Right x) = x
 
+record Prism (a, a', b, b' : Type) where
+  constructor MkPrism
+  build : (b' -> a')
+  match : (a -> Either b a')
+
+record PrismL (a, a', b, b' : Type) where
+  constructor MkPrismL
+  fn : a -> Either (b' -> a') a'
+
+to : Prism a a' b b' -> PrismL a a' b b'
+to (MkPrism b m) = MkPrismL (mapFst (const b) . m )
+
+toGroth : {a, a', b, b' : _} -> Prism a a' b b' -> (arr CoCartOptic) (MkGrothObj a a') (MkGrothObj b b')
+toGroth (MkPrism build match) = MkDepCoparaMor (MkGrothObj a' b' ** ?bbb) (MkGrothMor match (build . dia))
+-- toGroth (MkPrism build match) = MkDepCoparaMor (MkGrothObj b' a' ** build) (MkGrothMor ?sss ?aaa )
+
+leftPrism1 : Prism Int Int Unit Nat
+leftPrism1 = MkPrism
+  (fromInteger . cast)
+  (\x => if x < 0 then Left () else Right (cast x))
+
+leftPrism : {a, b, c : _} -> (arr CoCartOptic) (MkGrothObj (Either a c) (Either b c)) (MkGrothObj a b)
+leftPrism = MkDepCoparaMor (MkGrothObj c c ** id) (MkGrothMor id id)
 
 PrismToDepPrism : {A, B : AdtObj}
   -> (arr CoCartOptic) A B
