@@ -120,29 +120,43 @@ record Prism (a, a', b, b' : Type) where
   build : (b' -> a')
   match : (a -> Either b a')
 
+record DPrism1 (a : Type) (a' : (0 _ : a) -> Type)
+               (b : Type) (b' : (0 _ : b) -> Type) where
+  constructor MkDPrism1
+  res : Type
+  res' : (0 _ : res) -> Type
+  resMap : (r : res) -> res' r
+  match : a -> Either b res
+  build : (0 x : a) ->
+          Either0 (match x) b' res' -> a' x
+
+DPrism1ToGroth : DPrism1 a a' b b' ->
+  (arr (DepOpticCat CoCartDepAdt))
+    (MkGrothObj a a')
+    (MkGrothObj b b')
+DPrism1ToGroth (MkDPrism1 r r' rm m b) = MkDepCoparaMor
+  (MkGrothObj r r' ** rm)
+  (MkGrothMor m b)
+
 record PrismL (a, a', b, b' : Type) where
   constructor MkPrismL
   fn : a -> Either (b' -> a') a'
 
-to : Prism a a' b b' -> PrismL a a' b b'
-to (MkPrism b m) = MkPrismL (mapFst (const b) . m)
---to (MkPrism b m) = MkPrismL (\a => case m a of
---                                   (Left _) => Left b
---                                   (Right aa) => Right aa)
+toPrismL : Prism a a' b b' -> PrismL a a' b b'
+toPrismL (MkPrism b m) = MkPrismL (mapFst (const b) . m)
 
-toGroth : {a, a', b, b' : _} -> Prism a a' b b' -> (arr CoCartOptic) (MkGrothObj a a') (MkGrothObj b b')
+toGroth : {a, a', b, b' : _} -> Prism a a' b b' ->
+  (arr CoCartOptic) (MkGrothObj a a') (MkGrothObj b b')
 toGroth (MkPrism build match) = MkDepCoparaMor
   (MkGrothObj a' a' ** id)
-  (MkGrothMor match (fromEither . mapFst build)) -- (build . fromEither))
--- toGroth (MkPrism build match) = MkDepCoparaMor (MkGrothObj b' a' ** build) (MkGrothMor ?sss ?aaa )
+  (MkGrothMor match (fromEither . mapFst build))
 
-leftPrism1 : Prism Int Int Unit Nat
-leftPrism1 = MkPrism
+natPrism : Prism Int Int Unit Nat
+natPrism = MkPrism
   (fromInteger . cast)
   (\x => if x < 0 then Left () else Right (cast x))
 
-leftPrism : {a, b, c : _} -> (arr CoCartOptic) (MkGrothObj (Either a c) (Either b c)) (MkGrothObj a b)
-leftPrism = MkDepCoparaMor (MkGrothObj c c ** id) (MkGrothMor id id)
+
 
 PrismToDepPrism : {A, B : AdtObj}
   -> (arr CoCartOptic) A B
