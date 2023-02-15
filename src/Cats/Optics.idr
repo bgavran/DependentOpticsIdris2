@@ -7,6 +7,8 @@ import Cats.DepAct
 import Cats.DepCoPara
 import Cats.Misc
 
+import Data.Either
+
 -- Tw(M) acts on Adapters!!!
 -- action induced by reparameterisation along tw(M) -> MxM^op
 OpticAct : (c : Cat)
@@ -113,10 +115,6 @@ DepAdtToDepOptic {A=a} (MkGrothMor f f') = MkDepCoparaMor
     (\a => (f a, ()))
     (\0 a0, x => f' a0 (fst x))
 
-dia : Either a a -> a
-dia (Left x) = x
-dia (Right x) = x
-
 record Prism (a, a', b, b' : Type) where
   constructor MkPrism
   build : (b' -> a')
@@ -127,10 +125,15 @@ record PrismL (a, a', b, b' : Type) where
   fn : a -> Either (b' -> a') a'
 
 to : Prism a a' b b' -> PrismL a a' b b'
-to (MkPrism b m) = MkPrismL (mapFst (const b) . m )
+to (MkPrism b m) = MkPrismL (mapFst (const b) . m)
+--to (MkPrism b m) = MkPrismL (\a => case m a of
+--                                   (Left _) => Left b
+--                                   (Right aa) => Right aa)
 
 toGroth : {a, a', b, b' : _} -> Prism a a' b b' -> (arr CoCartOptic) (MkGrothObj a a') (MkGrothObj b b')
-toGroth (MkPrism build match) = MkDepCoparaMor (MkGrothObj a' b' ** ?bbb) (MkGrothMor match (build . dia))
+toGroth (MkPrism build match) = MkDepCoparaMor
+  (MkGrothObj a' a' ** id)
+  (MkGrothMor match (fromEither . mapFst build)) -- (build . fromEither))
 -- toGroth (MkPrism build match) = MkDepCoparaMor (MkGrothObj b' a' ** build) (MkGrothMor ?sss ?aaa )
 
 leftPrism1 : Prism Int Int Unit Nat
