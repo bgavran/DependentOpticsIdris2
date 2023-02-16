@@ -1,12 +1,12 @@
-module Cats.DepCoPara
+module DepCoPara
 
 import Data.Vect
 import Data.DPair
 
-import Cats.Cats
-import Cats.Groth
-import Cats.DepAct
-import Cats.Erased
+import Cats
+import Groth
+import DepAct
+import Erased
 
 public export
 record DepCoparaMor

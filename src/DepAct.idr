@@ -1,11 +1,11 @@
-module Cats.DepAct
+module DepAct
 
 import Data.DPair
 import Data.Either
 
-import Cats.Cats
-import Cats.Groth
-import Cats.Erased
+import Cats
+import Groth
+import Erased
 
 -- A dependent action on a category `c` is an indexed category over `c`
 -- with an action of the fibres on their base.

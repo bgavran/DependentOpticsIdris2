@@ -16,7 +16,7 @@ authors = "Bruno Gavranovic"
 -- depends =
 
 -- modules to install
-modules = DependentOptics
+modules = Optics
 
 -- main file (i.e. file to load at REPL)
 -- main =

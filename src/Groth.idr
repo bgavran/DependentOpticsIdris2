@@ -1,7 +1,7 @@
-module Cats.Groth
+module Groth
 
-import Cats.Cats
-import Cats.Erased
+import Cats
+import Erased
 
 public export
 record GrothObj (c : Cat) (d: IndCat c) where

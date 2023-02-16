@@ -1,4 +1,4 @@
-module Cats.Cats
+module Cats
 
 public export
 record Cat where

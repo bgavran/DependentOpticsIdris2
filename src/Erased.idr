@@ -1,4 +1,4 @@
-module Cats.Erased
+module Erased
 
 import Data.Either
 

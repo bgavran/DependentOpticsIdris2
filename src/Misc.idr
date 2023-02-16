@@ -1,4 +1,4 @@
-module Cats.Misc
+module Misc
 
 public export
 graph : (a -> b) -> (a -> (b, a))
