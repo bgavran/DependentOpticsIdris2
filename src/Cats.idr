@@ -54,6 +54,19 @@ public export
 TypeCat : Cat
 TypeCat = MkCat Type (\a, b => a -> b)
 
+-- public export
+-- Terminal : Cat
+-- Terminal = MkCat () (\_, _ => ())
+
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+-- Examples of functors
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+
+-- this function sholud in principle be the same as constCat!
+public export
+constFunctor : Type -> Functor c TypeCat
+constFunctor t = \_ => t
+
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Examples of indexed categories
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
