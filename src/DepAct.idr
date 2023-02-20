@@ -33,12 +33,12 @@ NonDepAct c m = DepAct c (constCat m)
 
 public export
 FamIndAction : Type
-FamIndAction = DepAct TypeCat FamInd
+FamIndAction = DepAct TypeCat (FamInd TypeCat)
 -- includes DPair, Pi
 
 public export
 Fam0IndAction : Type
-Fam0IndAction = DepAct TypeCat Fam0Ind
+Fam0IndAction = DepAct TypeCat (Fam0Ind TypeCat)
 -- includes Exists0
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
@@ -111,7 +111,7 @@ CoCartAdt = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => MkGrothObj
 
 
 public export
-CoCartDepAdt : NonDepAct DepAdt DepAdt
+CoCartDepAdt : NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
 CoCartDepAdt = MkDepAct $ \a, b => MkGrothObj
   (Either (a.baseObj) (b.baseObj))
   (\x => Either0 x (a.fibObj) (b.fibObj))
@@ -129,22 +129,22 @@ DepPiAction : FamIndAction
 DepPiAction = MkDepAct (\x, f => (a : x) -> f a)
 
 public export
-fibreFamAct : NonDepAct TypeCat TypeCat -> NonDepAct (FamCat a) TypeCat
+fibreFamAct : NonDepAct TypeCat TypeCat -> NonDepAct (Fam TypeCat a) TypeCat
 fibreFamAct f = MkDepAct (\p, b => \a0 => (act f) b (p a0))
 
 public export
-fibreFamAct' : NonDepAct TypeCat TypeCat -> NonDepAct (FamCat a) (FamCat a)
+fibreFamAct' : NonDepAct TypeCat TypeCat -> NonDepAct (Fam TypeCat a) (Fam TypeCat a)
 fibreFamAct' f = MkDepAct (\p, b => \a => (act f) (b a) (p a))
 
 public export
 DepCart0Action : Fam0IndAction
-DepCart0Action = MkDepAct Exists0
+DepCart0Action = MkDepAct DPair -- Exists0
 
 
 -- Every monoidal product on Set gives rise to a monoidal product on DepLens
 -- This is given pointwise, see https://arxiv.org/abs/2202.00534
 public export
-DepLensNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct DepLens DepLens
+DepLensNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct (DepLens TypeCat) (DepLens TypeCat)
 DepLensNonDepAct (MkDepAct ac) = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => (MkGrothObj
   (Pair a b)
   (\x => ac (a' (fst x)) (b' (snd x))))
@@ -152,7 +152,7 @@ DepLensNonDepAct (MkDepAct ac) = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b'
 
 -- Works for dependent adapters too
 public export
-DepAdtNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct DepAdt DepAdt
+DepAdtNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
 DepAdtNonDepAct ac = MkDepAct $ \aa', bb' => (MkGrothObj
   (Pair aa'.baseObj bb'.baseObj)
   (\x => (act ac) (aa'.fibObj (fst x)) (bb'.fibObj (snd x))))

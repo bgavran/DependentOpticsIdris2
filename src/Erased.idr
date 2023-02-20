@@ -26,10 +26,10 @@ length : Vect0 n a -> Nat
 length [] = Z
 length (x :: y) = S (length y)
 
-public export
-fromList : (xs : List elem) -> Vect0 elem (length xs)
-fromList [] = []
-fromList (x :: xs) = x :: fromList xs
+-- public export
+-- fromList : (xs : List elem) -> Vect0 elem (length xs)
+-- fromList [] = []
+-- fromList (x :: xs) = x :: fromList xs
 
 
 public export
@@ -64,8 +64,15 @@ record Unerase (A : Type) (0 a : A) where
   aRes : A
   p : a = aRes
 
+public export
+record PairProof (A : Type) (a : A) where
+  constructor MkPairProof
+  aRes : A
+  p : a = aRes
+
+
 
 public export
-data Either0 : (0 _ : Either a b) -> ((0 _ : a) -> Type) -> ((0 _ : b) -> Type) -> Type where
-  IsLeft : {0 x : a} -> {0 f : (0 _ : a) -> Type} -> f x -> Either0 (Left x) f g
-  IsRight : {0 x : b} -> {0 g : (0 _ : b) -> Type} -> g x -> Either0 (Right x) f g
+data Either0 : (0 _ : Either a b) -> (a -> Type) -> (b -> Type) -> Type where
+  IsLeft : {0 x : a} -> {0 f : a -> Type} -> f x -> Either0 (Left x) f g
+  IsRight : {0 x : b} -> {0 g : b -> Type} -> g x -> Either0 (Right x) f g

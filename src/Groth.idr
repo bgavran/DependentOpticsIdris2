@@ -2,6 +2,7 @@ module Groth
 
 import Cats
 import Erased
+import Data.Vect
 
 public export
 record GrothObj (c : Cat) (d: IndCat c) where
@@ -35,12 +36,12 @@ FLens c f = groth c (fibOp c f)
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 
 public export
-DepAdt : Cat
-DepAdt = FLens TypeCat Fam0Ind
+DepAdt : (d : Cat) -> Cat
+DepAdt d = FLens TypeCat (Fam0Ind d)
 
 public export
-DepLens : Cat
-DepLens = FLens TypeCat FamInd
+DepLens : (d : Cat) -> Cat
+DepLens d = FLens TypeCat (FamInd d)
 
 public export
 Lens : Cat
@@ -71,11 +72,11 @@ First there is the verbose bit of mapping betweeen the corresponding objects, th
 --- %%%% Four kinds of objects
 public export
 Cont : Type
-Cont = GrothObj TypeCat (fibOp TypeCat FamInd)
+Cont = GrothObj TypeCat (fibOp TypeCat (FamInd TypeCat))
 
 public export
 Cont0 : Type
-Cont0 = GrothObj TypeCat (fibOp TypeCat Fam0Ind)
+Cont0 = GrothObj TypeCat (fibOp TypeCat (Fam0Ind TypeCat))
 
 public export
 ConstCont : Type
@@ -93,19 +94,7 @@ AdtObjGen c = GrothObj c (fibOp c (constCat c))
 --- %%%% Four kinds of embeddings, actions on objects
 public export
 Cont0ToCont : Cont0 -> Cont
-Cont0ToCont dd = MkGrothObj dd.baseObj (\a => dd.fibObj a)
-
-public export
-ContToCont0 : Cont -> Cont0
-ContToCont0 a = MkGrothObj a.baseObj (\0 a0 => (x : Unerase a.baseObj a0 ** a.fibObj (aRes x)))
-
-iso : (A : Cont)
-  -> (arr DepLens) A (Cont0ToCont (ContToCont0 A))
-iso aCont = MkGrothMor id (\a, (MkUnerase _ pp ** x) => rewrite pp in x)
-
-iso2 : (A : Cont)
-  -> (arr DepLens) (Cont0ToCont (ContToCont0 A)) A
-iso2 aCont = MkGrothMor id (\a, fb => (MkUnerase a Refl ** fb))
+Cont0ToCont dd = MkGrothObj dd.baseObj dd.fibObj
 
 public export
 AdtObjToConstCont : AdtObj -> ConstCont
@@ -121,14 +110,14 @@ ConstContToCont a = MkGrothObj a.baseObj (\_ => a.fibObj)
 
 --- %%%% Four kinds of embeddings, actions on morphisms
 DepAdtToDepLens : {A, B : Cont0}
-  -> (arr DepAdt) A B
-  -> (arr DepLens) (Cont0ToCont A) (Cont0ToCont B)
+  -> (arr (DepAdt TypeCat)) A B
+  -> (arr (DepLens TypeCat)) (Cont0ToCont A) (Cont0ToCont B)
 DepAdtToDepLens (MkGrothMor f f') = MkGrothMor f (\a => f' a)
 -- can't completely eta-reduce because of lack of subtyping of erasable types
 
 LensToDepLens : {A, B : ConstCont}
   -> (arr Lens) A B
-  -> (arr DepLens) (ConstContToCont A) (ConstContToCont B)
+  -> (arr (DepLens TypeCat)) (ConstContToCont A) (ConstContToCont B)
 LensToDepLens (MkGrothMor f f') = MkGrothMor f (curry f') -- hmm we need to curry
 
 AdtToLens : {A, B : AdtObj}
@@ -138,5 +127,18 @@ AdtToLens (MkGrothMor f f') = MkGrothMor f (\(_, b) => f' b)
 
 AdtToDepAdt : {A, B : AdtObj}
   -> (arr (Adt TypeCat TypeCat)) A B
-  -> (arr DepAdt) (AdtObjToCont0 A) (AdtObjToCont0 B)
+  -> (arr (DepAdt TypeCat)) (AdtObjToCont0 A) (AdtObjToCont0 B)
 AdtToDepAdt (MkGrothMor f f') = MkGrothMor f (\_ => f')
+
+
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+-- Testing, example
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+
+X' : Nat -> Type
+X' n = Vect n Bool
+
+h : (arr (DepAdt TypeCat)) (MkGrothObj Nat X') (MkGrothObj Nat X')
+h = MkGrothMor id lm
+  where lm : (0 x : Nat) -> X' x -> X' x
+        lm _ = map not

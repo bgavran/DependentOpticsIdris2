@@ -10,44 +10,53 @@ import Misc
 import Data.Either
 
 OpticCat : (c, d, m : Cat)
+  -> (a : NonDepAct (Adt c d) (Adt m m))
+  -> Cat
+OpticCat c d m a = WeightedCoparaCat
+  (Adt c d)
+  (Adt m m)
+  a
+  (\mm => (arr m) (mm.baseObj) (mm.fibObj))
+
+DepOpticCat : (a : NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)) -> Cat
+DepOpticCat a = WeightedCoparaCat
+  (DepAdt TypeCat)
+  (DepAdt TypeCat)
+  a
+  (\mm => DFunction (mm.baseObj) (\x => mm.fibObj x))
+
+TwoActionsToOptic : (c, d, m : Cat)
   -> (l : NonDepAct c m)
   -> (r : NonDepAct d m)
   -> Cat
-OpticCat c d m l r = WeightedCoparaCat
-  (Adt c d)
-  (Adt m m)
-  (TwoActionsToAdtAction c d m m l r)
-  (\mm => m.arr (mm.baseObj) (mm.fibObj))
-
-DepOpticCat : (a : NonDepAct DepAdt DepAdt) -> Cat
-DepOpticCat a = WeightedCoparaCat
-  DepAdt
-  DepAdt
-  a
-  (\mm => Section (mm.baseObj) (\x => mm.fibObj x))
-
---OpticToDepOptic : (c, d, m : Cat)
---  -> (l : NonDepAct c m)
---  -> (r : NonDepAct d m)
---  -> OpticCat c d m l r -> DepOpticCat
-
+TwoActionsToOptic c d m l r = OpticCat c d m (TwoActionsToAdtAction c d m m l r)
 
 CoCartOptic : Cat
-CoCartOptic = OpticCat TypeCat TypeCat TypeCat CoCartAction CoCartAction
+CoCartOptic = TwoActionsToOptic TypeCat TypeCat TypeCat CoCartAction CoCartAction
 
 CartOptic : Cat
-CartOptic = OpticCat TypeCat TypeCat TypeCat CartAction CartAction
+CartOptic = TwoActionsToOptic TypeCat TypeCat TypeCat CartAction CartAction
 
 Grate : Cat
-Grate = OpticCat TypeCat TypeCat TypeCat HomAction CartAction
+Grate = TwoActionsToOptic TypeCat TypeCat TypeCat HomAction CartAction
 
 AffTraversal : Cat
-AffTraversal = OpticCat TypeCat TypeCat (productCat TypeCat TypeCat)  AffTraversalAct AffTraversalAct
+AffTraversal = TwoActionsToOptic TypeCat TypeCat (productCat TypeCat TypeCat)  AffTraversalAct AffTraversalAct
 
--- ArbHom : {A, B : AdtObj}
---   -> (arr CartOptic) A B
+-- ArbHom : {A, B : Cont0}
+--   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
 --   -> Type
 -- ArbHom (MkWCoparaMor (MkGrothObj ?mm ?oo) ?s (MkGrothMor ?ff ?bb)) = ?ee
+
+CartOpticToDepOptic : {A, B : AdtObj}
+  -> (arr CartOptic) A B
+  -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) (AdtObjToCont0 A) (AdtObjToCont0 B)
+CartOpticToDepOptic (MkWCoparaMor m s (MkGrothMor f f')) = MkWCoparaMor
+  (AdtObjToCont0 m)
+  s
+  $ MkGrothMor
+    f
+    (\0 _ => f')
 
 
 LensToCartOptic : {A, B : AdtObj}
@@ -73,32 +82,33 @@ LensToClosedForm {A=a} {B=b} (MkGrothMor f f') = MkWCoparaMor
   (\x => (snd x) (fst x))
 
 DepLensToDepOptic : {A, B : Cont0}
-  -> (arr DepLens) (Cont0ToCont A) (Cont0ToCont B)
+  -> (arr (DepLens TypeCat)) (Cont0ToCont A) (Cont0ToCont B)
   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
 DepLensToDepOptic {A=a} (MkGrothMor f f') = MkWCoparaMor
-  (MkGrothObj a.baseObj (Unerase a.baseObj))
-  (\a => MkUnerase a Refl)
+  (MkGrothObj a.baseObj (PairProof a.baseObj))
+  (\a => MkPairProof a Refl)
   $ MkGrothMor
     (graph f)
-    (\0 _ => lm)
-    where lm : (B .fibObj (f a0), Unerase (a .baseObj) a0) -> a .fibObj a0
-          lm (b', MkUnerase aRes p) = rewrite p in f' aRes (rewrite (sym p) in b')
+    (\0 a0 => lm)
+    where lm : (B .fibObj (f a0), PairProof (a .baseObj) a0) -> a .fibObj a0
+          lm (b', MkPairProof aRes p) = rewrite p in f' aRes (rewrite (sym p) in b')
 
 DepLensToClosedForm : {A, B : Cont0}
-  -> (arr DepLens) (Cont0ToCont A) (Cont0ToCont B)
+  -> (arr (DepLens TypeCat)) (Cont0ToCont A) (Cont0ToCont B)
   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
 DepLensToClosedForm {A=a} {B=b} (MkGrothMor f f') = MkWCoparaMor
-  (MkGrothObj a.baseObj (\0 a0 => b.fibObj (f a0) -> a.fibObj a0))
+  (MkGrothObj a.baseObj (\a0 => b.fibObj (f a0) -> a.fibObj a0))
   f'
   $ MkGrothMor
   (graph f)
   (\0 a0, x => (snd x) (fst x))
-
+  
+  
 DepAdtToDepOptic : {A, B : Cont0}
-  -> (arr DepAdt) A B
+  -> (arr (DepAdt TypeCat)) A B
   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
 DepAdtToDepOptic {A=a} (MkGrothMor f f') = MkWCoparaMor
-  (MkGrothObj () (\0 _ => ()))
+  (MkGrothObj () (\_ => ()))
   id
   $ MkGrothMor
   (\a => (f a, ()))
@@ -138,14 +148,13 @@ PrismToDepPrism : {A, B : AdtObj}
   -> (arr CoCartOptic) A B
   -> (arr (DepOpticCat CoCartDepAdt)) (AdtObjToCont0 A) (AdtObjToCont0 B)
 PrismToDepPrism (MkWCoparaMor (MkGrothObj rbase rfib) s (MkGrothMor fwd bwd)) = MkWCoparaMor
-  (MkGrothObj rbase (\0 _ => rfib))
+  (MkGrothObj rbase (\_ => rfib))
   s
   $ MkGrothMor
     fwd
     wc
-    where wc : (0 a0 : A .baseObj) -> Either0 (fwd a0) (\0 _ => B .fibObj) (\0 _ => rfib) -> A .fibObj
+    where wc : (0 a0 : A .baseObj) -> Either0 (fwd a0) (\_ => B .fibObj) (\_ => rfib) -> A .fibObj
           wc a0 x with 0 (fwd a0)
             wc a0 x | with_pat with (x)
               wc a0 x | (Left x') | (IsLeft y) = bwd (Left y)
               wc a0 x | (Right x') | (IsRight y) = bwd (Right y)
-
