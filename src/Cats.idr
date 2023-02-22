@@ -3,7 +3,7 @@ module Cats
 public export
 record Cat where
   constructor MkCat
-  obj : Type
+  0 obj : Type
   0 arr : obj -> obj -> Type
 
 public export
@@ -16,7 +16,7 @@ productCat c d = MkCat (obj c, obj d) (\a, b => ((arr c) (fst a) (fst b), (arr d
 
 -- Functors are defined by their action on objects
 public export
-Functor : Cat -> Cat -> Type
+0 Functor : Cat -> Cat -> Type
 Functor c d = c.obj -> d.obj
 
 -- An indexed category is a functor C^op -> Cat
@@ -28,7 +28,7 @@ record IndCat (c : Cat) where
 -- to rewrite indexed category as a functor we also need to write the category of categories as a category
 
 public export
-IndFunctor : (c : Cat) -> (f, g : IndCat c) -> Type
+0 IndFunctor : (c : Cat) -> (f, g : IndCat c) -> Type
 IndFunctor c f g = (x : c.obj) -> Functor ((mapObj f) x) ((mapObj g) x)
 
 public export
