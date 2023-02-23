@@ -2,6 +2,8 @@ module Groth
 
 import Cats
 import Erased
+import Misc
+
 import Data.Vect
 
 public export
@@ -16,7 +18,7 @@ record GrothMor (c : Cat) (d : IndCat c) (s : GrothObj c d) (t : GrothObj c d) w
   baseMor : c.arr s.baseObj t.baseObj
   fibMor : (d.mapObj s.baseObj).arr
            s.fibObj
-           (d.mapMor {x = s.baseObj} {y = t.baseObj} baseMor t.fibObj)
+           ((d.mapMor {x = s.baseObj} {y = t.baseObj} baseMor).mapObj t.fibObj)
 
 public export
 groth : (c : Cat) -> IndCat c -> Cat
@@ -27,7 +29,6 @@ groth c ind = MkCat
 public export
 FLens : (c : Cat) -> (f : IndCat c) -> Cat
 FLens c f = groth c (fibOp c f)
-
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Four kinds of F-lenses:
@@ -51,6 +52,14 @@ public export
 Adt : (c, d : Cat) -> Cat
 Adt c d = FLens c (constCat d)
 
+
+public export
+Hom : {m : Cat} -> Functor (Adt m m) (opCat TypeCat)
+Hom = MkFunctor (\o => (arr m) o.baseObj o.fibObj) ?zz -- need composition to implement!
+
+public export
+DepHom : Functor (DepAdt TypeCat) (opCat TypeCat)
+DepHom = MkFunctor (\o => DFunction o.baseObj o.fibObj) ?zza -- \x => o.fibObj x)) ?zzz
 
 {-
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
@@ -115,6 +124,7 @@ DepAdtToDepLens : {A, B : Cont0}
 DepAdtToDepLens (MkGrothMor f f') = MkGrothMor f (\a => f' a)
 -- can't completely eta-reduce because of lack of subtyping of erasable types
 
+
 LensToDepLens : {A, B : ConstCont}
   -> (arr Lens) A B
   -> (arr (DepLens TypeCat)) (ConstContToCont A) (ConstContToCont B)
@@ -137,6 +147,7 @@ AdtToDepAdt (MkGrothMor f f') = MkGrothMor f (\_ => f')
 
 X' : Nat -> Type
 X' n = Vect n Bool
+
 
 h : (arr (DepAdt TypeCat)) (MkGrothObj Nat X') (MkGrothObj Nat X')
 h = MkGrothMor id lm

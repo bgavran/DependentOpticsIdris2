@@ -21,7 +21,9 @@ DepActReparam : (c : Cat)
   -> (r : IndFunctor c g f)
   -> DepAct c f
   -> DepAct c g
-DepActReparam c f g r (MkDepAct a) = MkDepAct $ \x => ((a x) . (r x))
+DepActReparam c f g r (MkDepAct a) = MkDepAct $ \x => MkFunctor
+  ((a x).mapObj . (r x).mapObj)
+  ((a x).mapMor . (r x).mapMor)
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Some types of actions
@@ -66,19 +68,19 @@ NonDepAct2DepAct = id
 
 public export
 CartAction : NonDepAct TypeCat TypeCat
-CartAction = MkDepAct Pair
+CartAction = MkDepAct $ \x => MkFunctor (Pair x) mapSnd
 
 public export
 CoCartAction : DepAct TypeCat (constCat TypeCat)
-CoCartAction = MkDepAct Either
+CoCartAction = MkDepAct $ \x => MkFunctor (Either x) mapSnd
 
 public export
 HomAction : DepAct TypeCat (constCat TypeCat)
-HomAction = MkDepAct (\a, b => a -> b)
+HomAction = MkDepAct $ \a => MkFunctor (\b => a -> b) (.)
 
 public export
 Proj2Action : DepAct TypeCat (constCat TypeCat)
-Proj2Action = MkDepAct (\_ => id)
+Proj2Action = MkDepAct $ \_ => MkFunctor id id
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Some other concrete actions
@@ -100,34 +102,46 @@ TwoActionsToAdtAction : (c, d, m, n: Cat)
   -> (l : NonDepAct c m)
   -> (r : NonDepAct d n)
   -> NonDepAct (Adt c d) (Adt m n)
-TwoActionsToAdtAction c d m n l r = MkDepAct (\x, mm => MkGrothObj ((act l) (baseObj x) (baseObj mm)) ((act r) (fibObj x) (fibObj mm)))
+TwoActionsToAdtAction c d m n l r = MkDepAct $ \x => MkFunctor
+  (\mm => MkGrothObj (((act l) (baseObj x)).mapObj (baseObj mm)) (((act r) (fibObj x)).mapObj (fibObj mm)))
+  (\mm => MkGrothMor (((act l) (baseObj x)).mapMor (baseMor mm)) (((act r) (fibObj x)).mapMor (fibMor mm)))
 
+
+-- )
 
 public export
 CoCartAdt : NonDepAct (Adt TypeCat TypeCat) (Adt TypeCat TypeCat)
-CoCartAdt = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => MkGrothObj
-  (Either a b)
-  (Either a' b')
+CoCartAdt = MkDepAct $ \a => MkFunctor
+  (\b => MkGrothObj (Either a.baseObj b.baseObj) (Either a.fibObj b.fibObj))
+  (\b => MkGrothMor (mapSnd b.baseMor) (mapSnd b.fibMor))
 
 
-public export
-CoCartDepAdt : NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
-CoCartDepAdt = MkDepAct $ \a, b => MkGrothObj
-  (Either (a.baseObj) (b.baseObj))
-  (\x => Either0 x (a.fibObj) (b.fibObj))
+
+-- public export
+-- CoCartDepAdt : NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
+-- CoCartDepAdt = MkDepAct $ \a, b => MkGrothObj
+--   (Either (a.baseObj) (b.baseObj))
+--   (\x => Either0 x (a.fibObj) (b.fibObj))
 
 public export
 AffTraversalAct : NonDepAct TypeCat (productCat TypeCat TypeCat)
-AffTraversalAct = MkDepAct $ \x, mn => Either (fst mn) (Pair (snd mn) x)
+AffTraversalAct = MkDepAct $ \x => MkFunctor
+  (\mn => Either (fst mn) (Pair (snd mn) x))
+  (\mn => bimap (fst mn) (mapFst (snd mn)))
 
 public export
 DepCartAction : FamIndAction
-DepCartAction = MkDepAct DPair
+DepCartAction = MkDepAct $ \x => MkFunctor
+  (DPair x)
+  (\f, dp => (fst dp ** f (fst dp) (snd dp))) -- mapSnd instance for DPair?
 
-public export
-DepPiAction : FamIndAction
-DepPiAction = MkDepAct (\x, f => (a : x) -> f a)
+-- public export
+-- DepPiAction : FamIndAction
+-- DepPiAction = MkDepAct $ \x => MkFunctor
+--   (\f => (a : x) -> f a)
+--   (\f, g, a => f a ?ef) -- f => (a : x) -> f a)
 
+                       {-
 public export
 fibreFamAct : NonDepAct TypeCat TypeCat -> NonDepAct (Fam TypeCat a) TypeCat
 fibreFamAct f = MkDepAct (\p, b => \a0 => (act f) b (p a0))
@@ -139,24 +153,39 @@ fibreFamAct' f = MkDepAct (\p, b => \a => (act f) (b a) (p a))
 public export
 DepCart0Action : Fam0IndAction
 DepCart0Action = MkDepAct DPair -- Exists0
+-}
 
+0 objProd : (a, b : Cont)
+  -> NonDepAct TypeCat TypeCat
+  -> Cont
+objProd a b ac = MkGrothObj (Pair a.baseObj b.baseObj) (\x => ((act ac) (a.fibObj (fst x))).mapObj (b.fibObj (snd x)))
+
+0 Helperr : {a, x, y : Cont}
+  -> (ac : NonDepAct TypeCat TypeCat)
+  -> (f : (arr (DepLens TypeCat)) x y)
+  -> (arr (DepLens TypeCat) (objProd a x ac) (objProd a y ac))
+Helperr {a} {x} {y} ac f = MkGrothMor
+  (mapSnd f.baseMor)
+  (\(aLeft, xRight) => (((act ac) (a.fibObj aLeft)).mapMor ((f.fibMor) xRight)))
 
 -- Every monoidal product on Set gives rise to a monoidal product on DepLens
 -- This is given pointwise, see https://arxiv.org/abs/2202.00534
 public export
 DepLensNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct (DepLens TypeCat) (DepLens TypeCat)
-DepLensNonDepAct (MkDepAct ac) = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b') => (MkGrothObj
-  (Pair a b)
-  (\x => ac (a' (fst x)) (b' (snd x))))
-
+DepLensNonDepAct ac = MkDepAct $ \a => MkFunctor
+  (\b => objProd a b ac)
+  (Helperr ac)
 
 -- Works for dependent adapters too
 public export
 DepAdtNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
-DepAdtNonDepAct ac = MkDepAct $ \aa', bb' => (MkGrothObj
-  (Pair aa'.baseObj bb'.baseObj)
-  (\x => (act ac) (aa'.fibObj (fst x)) (bb'.fibObj (snd x))))
+DepAdtNonDepAct ac = MkDepAct $ \aa' => ?eg
 
+--, bb' => (MkGrothObj
+--  (Pair aa'.baseObj bb'.baseObj)
+--  (\x => (act ac) (aa'.fibObj (fst x)) (bb'.fibObj (snd x))))
+
+  {-
 
 -- Works for adapters too... but this uses the same action on both places?
 public export

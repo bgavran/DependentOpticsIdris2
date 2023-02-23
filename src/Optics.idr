@@ -16,14 +16,14 @@ OpticCat c d m a = WeightedCoparaCat
   (Adt c d)
   (Adt m m)
   a
-  (\mm => (arr m) (mm.baseObj) (mm.fibObj))
+  Hom
 
 DepOpticCat : (a : NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)) -> Cat
 DepOpticCat a = WeightedCoparaCat
   (DepAdt TypeCat)
   (DepAdt TypeCat)
   a
-  (\mm => DFunction (mm.baseObj) (\x => mm.fibObj x))
+  DepHom
 
 TwoActionsToOptic : (c, d, m : Cat)
   -> (l : NonDepAct c m)
@@ -48,6 +48,7 @@ AffTraversal = TwoActionsToOptic TypeCat TypeCat (productCat TypeCat TypeCat)  A
 --   -> Type
 -- ArbHom (MkWCoparaMor (MkGrothObj ?mm ?oo) ?s (MkGrothMor ?ff ?bb)) = ?ee
 
+{-
 CartOpticToDepOptic : {A, B : AdtObj}
   -> (arr CartOptic) A B
   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) (AdtObjToCont0 A) (AdtObjToCont0 B)
@@ -84,15 +85,16 @@ LensToClosedForm {A=a} {B=b} (MkGrothMor f f') = MkWCoparaMor
 DepLensToDepOptic : {A, B : Cont0}
   -> (arr (DepLens TypeCat)) (Cont0ToCont A) (Cont0ToCont B)
   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
-DepLensToDepOptic {A=a} (MkGrothMor f f') = MkWCoparaMor
-  (MkGrothObj a.baseObj (PairProof a.baseObj))
+DepLensToDepOptic (MkGrothMor f f') = MkWCoparaMor
+  (MkGrothObj (A .baseObj) (PairProof A .baseObj))
   (\a => MkPairProof a Refl)
   $ MkGrothMor
     (graph f)
     (\0 a0 => lm)
-    where lm : (B .fibObj (f a0), PairProof (a .baseObj) a0) -> a .fibObj a0
+    where lm : (B .fibObj (f a0), PairProof (A .baseObj) a0) -> A .fibObj a0
           lm (b', MkPairProof aRes p) = rewrite p in f' aRes (rewrite (sym p) in b')
 
+{-
 DepLensToClosedForm : {A, B : Cont0}
   -> (arr (DepLens TypeCat)) (Cont0ToCont A) (Cont0ToCont B)
   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
@@ -102,8 +104,8 @@ DepLensToClosedForm {A=a} {B=b} (MkGrothMor f f') = MkWCoparaMor
   $ MkGrothMor
   (graph f)
   (\0 a0, x => (snd x) (fst x))
-  
-  
+
+
 DepAdtToDepOptic : {A, B : Cont0}
   -> (arr (DepAdt TypeCat)) A B
   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
@@ -118,6 +120,7 @@ record Prism (a, a', b, b' : Type) where
   constructor MkPrism
   build : (b' -> a')
   match : (a -> Either b a')
+
 
 record PrismL (a, a', b, b' : Type) where
   constructor MkPrismL
