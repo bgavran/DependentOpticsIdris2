@@ -43,12 +43,11 @@ Grate = TwoActionsToOptic TypeCat TypeCat TypeCat HomAction CartAction
 AffTraversal : Cat
 AffTraversal = TwoActionsToOptic TypeCat TypeCat (productCat TypeCat TypeCat)  AffTraversalAct AffTraversalAct
 
--- ArbHom : {A, B : Cont0}
---   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
---   -> Type
--- ArbHom (MkWCoparaMor (MkGrothObj ?mm ?oo) ?s (MkGrothMor ?ff ?bb)) = ?ee
+ArbHom : {A, B : AdtObj}
+  -> (arr CartOptic) A B
+  -> Type
+ArbHom (MkWCoparaMor (MkGrothObj ?mm ?oo) ?s (MkGrothMor ?ff ?bb)) = ?ee
 
-{-
 CartOpticToDepOptic : {A, B : AdtObj}
   -> (arr CartOptic) A B
   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) (AdtObjToCont0 A) (AdtObjToCont0 B)

@@ -160,30 +160,20 @@ DepCart0Action = MkDepAct DPair -- Exists0
   -> Cont
 objProd a b ac = MkGrothObj (Pair a.baseObj b.baseObj) (\x => ((act ac) (a.fibObj (fst x))).mapObj (b.fibObj (snd x)))
 
-0 Helperr : {a, x, y : Cont}
-  -> (ac : NonDepAct TypeCat TypeCat)
-  -> (f : (arr (DepLens TypeCat)) x y)
-  -> (arr (DepLens TypeCat) (objProd a x ac) (objProd a y ac))
-Helperr {a} {x} {y} ac f = MkGrothMor
-  (mapSnd f.baseMor)
-  (\(aLeft, xRight) => (((act ac) (a.fibObj aLeft)).mapMor ((f.fibMor) xRight)))
-
 -- Every monoidal product on Set gives rise to a monoidal product on DepLens
 -- This is given pointwise, see https://arxiv.org/abs/2202.00534
 public export
 DepLensNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct (DepLens TypeCat) (DepLens TypeCat)
 DepLensNonDepAct ac = MkDepAct $ \a => MkFunctor
   (\b => objProd a b ac)
-  (Helperr ac)
+  (\f => MkGrothMor (mapSnd f.baseMor) (\(aLeft, xRight) => ((act ac) (a.fibObj aLeft)).mapMor ((f.fibMor) xRight)))
 
 -- Works for dependent adapters too
 public export
 DepAdtNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
-DepAdtNonDepAct ac = MkDepAct $ \aa' => ?eg
-
---, bb' => (MkGrothObj
---  (Pair aa'.baseObj bb'.baseObj)
---  (\x => (act ac) (aa'.fibObj (fst x)) (bb'.fibObj (snd x))))
+DepAdtNonDepAct ac = MkDepAct $ \aa' => MkFunctor
+  (\bb' => MkGrothObj (Pair aa'.baseObj bb'.baseObj) (\x => ((act ac) (aa'.fibObj (fst x))).mapObj (bb'.fibObj (snd x))))
+  (\f => MkGrothMor (mapSnd f.baseMor) (\(aLeft, xRight) => (((act ac) (aa'.fibObj aLeft)).mapMor ((f.fibMor) xRight))))
 
   {-
 
