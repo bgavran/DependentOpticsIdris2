@@ -81,19 +81,25 @@ LensToClosedForm {A=a} {B=b} (MkGrothMor f f') = MkWCoparaMor
   (graph f)
   (\x => (snd x) (fst x))
 
-DepLensToDepOptic : {A, B : Cont0}
-  -> (arr (DepLens TypeCat)) (Cont0ToCont A) (Cont0ToCont B)
-  -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B
-DepLensToDepOptic (MkGrothMor f f') = MkWCoparaMor
-  (MkGrothObj (A .baseObj) (PairProof A .baseObj))
+lm : {a, b : Cont0} ->
+     {f : a .baseObj -> b .baseObj} ->
+     {f' : (x : a .baseObj) -> b .fibObj (f x) -> a .fibObj x} ->
+     (0 a0 : a.baseObj ) ->
+     (b .fibObj (f a0) , PairProof (a.baseObj) a0) -> a.fibObj a0
+lm a0 (b', MkPairProof aRes p) = let b'' = cong {a = a0} {b=aRes} (\x => b.fibObj (f x)) (p)
+                                     v = f' aRes (replace {p = id} b'' b') in
+                                     replace {p = \x => a.fibObj x} (sym p) v
+
+DepLensToDepOptic : {a, b : Cont0}
+  -> (arr (DepLens TypeCat)) (Cont0ToCont a) (Cont0ToCont b)
+  -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) a b
+DepLensToDepOptic  (MkGrothMor f f') = MkWCoparaMor
+  (MkGrothObj (a.baseObj) (PairProof (a.baseObj)))
   (\a => MkPairProof a Refl)
   $ MkGrothMor
     (graph f)
-    (\0 a0 => lm)
-    where lm : (B .fibObj (f a0), PairProof (A .baseObj) a0) -> A .fibObj a0
-          lm (b', MkPairProof aRes p) = rewrite p in f' aRes (rewrite (sym p) in b')
+    (lm {f} {f'} {a} {b})
 
-{-
 DepLensToClosedForm : {A, B : Cont0}
   -> (arr (DepLens TypeCat)) (Cont0ToCont A) (Cont0ToCont B)
   -> (arr (DepOpticCat (DepAdtNonDepAct CartAction))) A B

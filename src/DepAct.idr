@@ -113,15 +113,17 @@ public export
 CoCartAdt : NonDepAct (Adt TypeCat TypeCat) (Adt TypeCat TypeCat)
 CoCartAdt = MkDepAct $ \a => MkFunctor
   (\b => MkGrothObj (Either a.baseObj b.baseObj) (Either a.fibObj b.fibObj))
-  (\b => MkGrothMor (mapSnd b.baseMor) (mapSnd b.fibMor))
+  (\f => MkGrothMor (mapSnd f.baseMor) (mapSnd f.fibMor))
 
 
 
--- public export
--- CoCartDepAdt : NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
--- CoCartDepAdt = MkDepAct $ \a, b => MkGrothObj
---   (Either (a.baseObj) (b.baseObj))
---   (\x => Either0 x (a.fibObj) (b.fibObj))
+public export
+CoCartDepAdt : NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
+CoCartDepAdt = MkDepAct $ \a => MkFunctor
+  (\b => MkGrothObj (Either (a.baseObj) (b.baseObj)) (\x => Either0 x (a.fibObj) (b.fibObj)))
+  (\f => MkGrothMor (mapSnd f.baseMor) (\x0 => let t = f.fibMor
+                                               in ?zhmmm))
+
 
 public export
 AffTraversalAct : NonDepAct TypeCat (productCat TypeCat TypeCat)

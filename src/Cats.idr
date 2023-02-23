@@ -3,7 +3,7 @@ module Cats
 public export
 record Cat where
   constructor MkCat
-  obj : Type
+  0 obj : Type
   0 arr : obj -> obj -> Type
 
 public export
