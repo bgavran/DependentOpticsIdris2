@@ -73,3 +73,27 @@ data Either0 : (0 _ : Either a b) ->
            f x -> Either0 (Left x) f g
   IsRight : {0 x : b} -> {0 g : (0 _ : b) -> Type} ->
             g x -> Either0 (Right x) f g
+
+-- dependent eliminator for Either0
+public export
+elimEither0 : {0 a : Type} -> {0 a' : (0 _ : a) -> Type} ->
+              {0 b : Type} -> {0 b' : (0 _ : b) -> Type} ->
+              (0 e : Either a b) ->
+              {0 m : {0 e : Either a b} -> Either0 e a' b' -> Type} ->
+              (f : (0 x : a) -> (y : a' x) -> m (IsLeft y)) ->
+              (g : (0 x : b) -> (y : b' x) -> m (IsRight y)) ->
+              (v : Either0 e a' b') -> m v
+elimEither0 (Left x) f g (IsLeft y) = f x y
+elimEither0 (Right x) f g (IsRight y) = g x y
+
+public export
+elimEither0' : {0 a : Type} -> {0 a' : (0 _ : a) -> Type} ->
+              {0 b : Type} -> {0 b' : (0 _ : b) -> Type} ->
+              (0 e : Either a b) ->
+              {0 m : Either a b -> Type} ->
+              (f : (0 x : a) -> (y : a' x) -> m (Left x)) ->
+              (g : (0 x : b) -> (y : b' x) -> m (Right x)) ->
+              (v : Either0 e a' b') -> m e
+elimEither0' (Left x) f g (IsLeft y) = f x y
+elimEither0' (Right x) f g (IsRight y) = g x y
+

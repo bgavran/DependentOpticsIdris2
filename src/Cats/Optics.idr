@@ -120,6 +120,7 @@ record Prism (a, a', b, b' : Type) where
   build : (b' -> a')
   match : (a -> Either b a')
 
+
 record DPrism1 (a : Type) (a' : (0 _ : a) -> Type)
                (b : Type) (b' : (0 _ : b) -> Type) where
   constructor MkDPrism1
@@ -138,12 +139,11 @@ DPrism1ToGroth (MkDPrism1 r r' rm m b) = MkDepCoparaMor
   (MkGrothObj r r' ** rm)
   (MkGrothMor m b)
 
-record PrismL (a, a', b, b' : Type) where
-  constructor MkPrismL
-  fn : a -> Either (b' -> a') a'
-
-toPrismL : Prism a a' b b' -> PrismL a a' b b'
-toPrismL (MkPrism b m) = MkPrismL (mapFst (const b) . m)
+PrismGroth : (a : Type) -> (a' : (0 _ : a) -> Type) ->
+             (b : Type) -> (b' : (0 _ : b) -> Type) ->
+             Type
+PrismGroth a a' b b' =
+  (arr (DepOpticCat CoCartDepAdt)) (MkGrothObj a a') (MkGrothObj b b')
 
 toGroth : {a, a', b, b' : _} -> Prism a a' b b' ->
   (arr CoCartOptic) (MkGrothObj a a') (MkGrothObj b b')
@@ -156,7 +156,41 @@ natPrism = MkPrism
   (fromInteger . cast)
   (\x => if x < 0 then Left () else Right (cast x))
 
+Prism' : Type -> Type -> Type
+Prism' a b = Prism a a b b
 
+maybePrism : Prism (Maybe a) (Maybe a) a a
+maybePrism = MkPrism Just (maybe (Right Nothing) Left)
+
+data IsJust : (0 _ : Maybe a) -> Type where
+  ItIsJust : (x : a) -> IsJust (Just x)
+
+isItJust : (x : Maybe a) -> Dec (IsJust x)
+
+maybeDPrism : {a : _} -> DPrism1 (Maybe a) (\_ => Maybe a) a (\_ => a)
+maybeDPrism = MkDPrism1
+  Unit
+  (\x => Unit)
+  id
+  (maybe (Right ()) Left)
+  (\0 x', k => elimEither0' {m = \k => Maybe a } _ (\_ => Just) (\_, _ => Nothing) k)
+
+maybeDPrism' : {a : _} -> DPrism1 (Maybe a) (\_ => Maybe a) a (\_ => a)
+maybeDPrism' = MkDPrism1
+  (Maybe a)
+  (\x => IsJust x)
+  ?www
+  (\x => ?Left)
+  ?bb
+  -- (maybe (Right ()) Left)
+  -- (\0 x', k => elimEither0' {m = \k => Maybe a } _ (\_ => Just) (\v, v' => ?ww) k)
+
+  {-
+
+leftPrism : Prism (Either a b) (Either a b) a a
+leftPrism = MkPrism
+  Left
+  (either Left (Right . Right))
 
 PrismToDepPrism : {A, B : AdtObj}
   -> (arr CoCartOptic) A B
@@ -165,10 +199,52 @@ PrismToDepPrism (MkDepCoparaMor (MkGrothObj rbase rfib ** s) (MkGrothMor fwd bwd
   (MkGrothObj rbase (\0 _ => rfib) ** s)
   $ MkGrothMor
     fwd
-    wc
-    where wc : (0 a0 : A .baseObj) -> Either0 (fwd a0) (\0 _ => B .fibObj) (\0 _ => rfib) -> A .fibObj
-          wc a0 x with 0 (fwd a0)
-            wc a0 x | with_pat with (x)
-              wc a0 x | (Left x') | (IsLeft y) = bwd (Left y)
-              wc a0 x | (Right x') | (IsRight y) = bwd (Right y)
+    (\0 x, e => elimEither0 {m = \_ => fibObj A} _ (\_ => bwd . Left) (\_ => bwd . Right) e)
+
+data IsEven : (0 _ : Nat) -> Type where
+  ZeroEven : IsEven Z
+  SuccSuccEven : IsEven n -> IsEven (S (S n))
+
+data IsOdd : (0 _ : Nat) -> Type where
+  OneOdd : IsOdd 1
+  SuccSuccOdd : IsOdd n -> IsOdd (S (S n))
+
+dependent_match : (n : Nat) -> IsEven n -> (IsOdd (S n))
+dependent_match 0 ZeroEven = (OneOdd)
+dependent_match (S (S n)) (SuccSuccEven x) =
+  let v = dependent_match n x in
+      (SuccSuccOdd (v))
+
+test : dependent_match 4 %search = SuccSuccOdd (SuccSuccOdd OneOdd)
+test = Refl
+
+isOdd : (x : Nat) -> Dec (IsOdd x)
+isOdd 0 = No (\case _ impossible)
+isOdd (S 0) = Yes OneOdd
+isOdd (S (S k)) = case isOdd k of
+                       Yes p => Yes (SuccSuccOdd p)
+                       No c => No (\case (SuccSuccOdd x) => c x)
+
+evenPrism : DPrism1 Nat (\0 n => Nat) Nat IsEven
+evenPrism = MkDPrism1
+  Nat
+  (\x => Dec (IsOdd x))
+  --(\x => Subset0 Nat (\y => (IsOdd y, y === x)))
+  isOdd
+  isEven
+  (\0 k => elimEither0 {m = \_ => Nat} (isEven k) ?aa ?mmm)
+  --(\0 x, e => elimEither0 {m = ty x} (isEven x) ?aaa ?dd e)
+  where
+    ty : Nat -> Either0 e IsEven (\0 n => Nat) ->  Type
+    ty x _ = IsOdd (S x)-- elimEither0 {m = \_ => Type} e ?aa ?bb
+
+    isEven : Nat -> Either Nat Nat
+    isEven 0 = Left 0
+    isEven (S n) = Right n
+
+    even2Odd : (0 y : Nat) -> IsEven y -> IsOdd (S y)
+    even2Odd 0 ZeroEven = OneOdd
+    even2Odd (S (S n)) (SuccSuccEven y) = SuccSuccOdd (even2Odd n y)
+
+
 
