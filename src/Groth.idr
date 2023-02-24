@@ -5,28 +5,12 @@ import Erased
 import Data.Vect
 
 public export
-record GrothObj (c : Cat) (d: IndCat c) where
-  constructor MkGrothObj
-  baseObj : c.obj
-  fibObj : (d.mapObj baseObj).obj
 
 public export
-record GrothMor (c : Cat) (d : IndCat c) (s : GrothObj c d) (t : GrothObj c d) where
-  constructor MkGrothMor
-  baseMor : c.arr s.baseObj t.baseObj
-  fibMor : (d.mapObj s.baseObj).arr
-           s.fibObj
-           (d.mapMor {x = s.baseObj} {y = t.baseObj} baseMor t.fibObj)
 
 public export
-groth : (c : Cat) -> IndCat c -> Cat
-groth c ind = MkCat
-  (GrothObj c ind)
-  (GrothMor c ind)
 
 public export
-FLens : (c : Cat) -> (f : IndCat c) -> Cat
-FLens c f = groth c (fibOp c f)
 
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
@@ -36,12 +20,8 @@ FLens c f = groth c (fibOp c f)
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 
 public export
-DepAdt : (d : Cat) -> Cat
-DepAdt d = FLens TypeCat (Fam0Ind d)
 
 public export
-DepLens : (d : Cat) -> Cat
-DepLens d = FLens TypeCat (FamInd d)
 
 public export
 Lens : Cat
@@ -71,12 +51,8 @@ First there is the verbose bit of mapping betweeen the corresponding objects, th
 
 --- %%%% Four kinds of objects
 public export
-Cont : Type
-Cont = GrothObj TypeCat (fibOp TypeCat (FamInd TypeCat))
 
 public export
-Cont0 : Type
-Cont0 = GrothObj TypeCat (fibOp TypeCat (Fam0Ind TypeCat))
 
 public export
 ConstCont : Type
@@ -93,8 +69,6 @@ AdtObjGen c = GrothObj c (fibOp c (constCat c))
 
 --- %%%% Four kinds of embeddings, actions on objects
 public export
-Cont0ToCont : Cont0 -> Cont
-Cont0ToCont dd = MkGrothObj dd.baseObj dd.fibObj
 
 public export
 AdtObjToConstCont : AdtObj -> ConstCont

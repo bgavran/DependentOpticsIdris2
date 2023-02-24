@@ -10,9 +10,6 @@ import Erased
 -- A dependent action on a category `c` is an indexed category over `c`
 -- with an action of the fibres on their base.
 public export
-record DepAct (c : Cat) (bund : IndCat c) where
-  constructor MkDepAct
-  act : (x : c.obj) -> Functor (bund.mapObj x) c
   -- Equivalently a functor from the Grothendieck construction of bund to c
 
 public export
@@ -28,8 +25,6 @@ DepActReparam c f g r (MkDepAct a) = MkDepAct $ \x => ((a x) . (r x))
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 
 public export
-NonDepAct : (c, m : Cat) -> Type
-NonDepAct c m = DepAct c (constCat m)
 
 public export
 FamIndAction : Type
@@ -65,8 +60,6 @@ NonDepAct2DepAct = id
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 
 public export
-CartAction : NonDepAct TypeCat TypeCat
-CartAction = MkDepAct Pair
 
 public export
 CoCartAction : DepAct TypeCat (constCat TypeCat)
@@ -152,10 +145,6 @@ DepLensNonDepAct (MkDepAct ac) = MkDepAct $ \(MkGrothObj a a'), (MkGrothObj b b'
 
 -- Works for dependent adapters too
 public export
-DepAdtNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
-DepAdtNonDepAct ac = MkDepAct $ \aa', bb' => (MkGrothObj
-  (Pair aa'.baseObj bb'.baseObj)
-  (\x => (act ac) (aa'.fibObj (fst x)) (bb'.fibObj (snd x))))
 
 
 -- Works for adapters too... but this uses the same action on both places?

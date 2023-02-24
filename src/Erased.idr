@@ -65,10 +65,6 @@ record Unerase (A : Type) (0 a : A) where
   p : a = aRes
 
 public export
-record PairProof (A : Type) (a : A) where
-  constructor MkPairProof
-  aRes : A
-  p : a = aRes
 
 
 
