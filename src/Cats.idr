@@ -1,5 +1,7 @@
 module Cats
 
+import Misc
+
 public export
 record Cat where
   constructor MkCat
@@ -87,6 +89,29 @@ Fam c a = MkCat
 public export
 FamInd : (c : Cat) -> IndCat TypeCat
 FamInd c = MkFunctor (Fam c) (\f => MkFunctor (. f) (\j, xx => j (f xx)))
+
+DepFn : {x, y : Type}
+  -> (x -> y)
+  -> (x -> Type)
+  -> (y -> Type)
+DepFn f x' = \y => DFunction (a : x ** f a = y) (\(a ** p) => x' a)
+
+DepPair : {x, y : Type}
+  -> (x -> y)
+  -> (x -> Type)
+  -> (y -> Type)
+DepPair f x' = \y => DPair (a : x ** f a = y) (\(a ** p) => x' a)
+
+-- public export
+-- FamIndDFun : Functor TypeCat CatofCats
+-- FamIndDFun = MkFunctor
+--   (Fam TypeCat)
+--   (\f => MkFunctor (DepFn f) (\g, h, x => ?ezz))
+
+-- FamIndDPair : (c : Cat) -> Functor TypeCat CatofCats
+-- FamIndDPair c = MkFunctor
+--   (Fam c)
+--   (\f => MkFunctor (\x' => ?feff) ?ezzz)
 
 -- %%%%%%%
 public export

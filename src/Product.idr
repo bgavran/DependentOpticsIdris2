@@ -2,6 +2,7 @@ module Product
 
 import Cats
 
+public export
 record ProdCone (c : Cat) (x, y : obj c) where
   constructor MkProdCone
   apex : obj c

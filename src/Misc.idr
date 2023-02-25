@@ -9,6 +9,10 @@ public export
 DFunction : (A : Type) -> (A' : A -> Type) -> Type
 DFunction a a' = (x : a) -> a' x
 
+public export
+eval : (a, a -> b) -> b
+eval x = (snd x) (fst x)
+
 
 -- a non-dependent erased function f : x -> y is a constant fn
 -- it factors through x -> () -> y

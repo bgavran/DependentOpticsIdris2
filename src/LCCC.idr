@@ -3,6 +3,7 @@ module LCCC
 import Cats
 import Product
 import DepAct
+import Misc
 
 
 Slice : (c : Cat) -> (x : obj c) -> Cat
@@ -26,13 +27,14 @@ TypeCatHasPullbacks = MkHasPullbacks $ \y => MkCart $ \(x ** f), (y' ** p) => Mk
 -- em x = \x' => ((a : x ** x' a) ** fst)
 
 -- me : (x : Type) -> Functor (Slice TypeCat x) (Fam TypeCat x)
--- me x = \sgm => \x => (y : Type ** (x ** ))?eel
+-- me x = \sgm => \x => (y : Type ** (x ** ?bnn)) ?eel
 
 SliceInd : (c : Cat) -> HasPullbacks c -> IndCat c
-SliceInd c p = MkIndCat (Slice c) lm
-  where lm : {x, y : obj c} -> (arr c) x y -> (a : c .obj ** c .arr a y) -> (a : c .obj ** c .arr a x)
-        lm f y' = let prodCone = prod (sliceCart p y) (x ** f) y'
-                  in (fst (apex prodCone) ** proj1 prodCone)
+SliceInd c p = MkFunctor (Slice c) lm
+  where lm : {x, y : obj c} -> c .arr x y -> Functor (MkCat (a : c .obj ** c .arr a y) (\a => \b => c .arr (a .fst) (b .fst))) (MkCat (a : c .obj ** c .arr a x) (\a => \b => c .arr (a .fst) (b .fst)))
+        lm f = MkFunctor
+               (\y' => (fst (apex (prod (sliceCart p y) (x ** f) y')) ** proj1 (prod (sliceCart p y) (x ** f) y')))
+               (\f => ?mm)
   {-
 
              y'
@@ -51,4 +53,12 @@ SliceInd c p = MkIndCat (Slice c) lm
 public export
 record LCCC (c : Cat) where
   constructor MkLCCC
+  pbck : HasPullbacks c
+  sect : (x : obj c) -> Functor (Slice c x) c
+
+TypeCatLCCC : LCCC TypeCat
+TypeCatLCCC = MkLCCC TypeCatHasPullbacks $ \x => MkFunctor
+  (\x => DFunction (fst x) (let t = snd x in ?aaa))
+  ?bb
+
 

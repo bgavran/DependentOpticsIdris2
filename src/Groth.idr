@@ -53,14 +53,6 @@ Adt : (c, d : Cat) -> Cat
 Adt c d = FLens c (constCat d)
 
 
-public export
-Hom : {m : Cat} -> Functor (Adt m m) (opCat TypeCat)
-Hom = MkFunctor (\o => (arr m) o.baseObj o.fibObj) ?zz -- need composition to implement!
-
-public export
-DepHom : Functor (DepAdt TypeCat) (opCat TypeCat)
-DepHom = MkFunctor (\o => DFunction o.baseObj o.fibObj) ?zza -- \x => o.fibObj x)) ?zzz
-
 {-
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 The rest of the code implements the following four embeddings:
@@ -83,9 +75,10 @@ public export
 Cont : Type
 Cont = GrothObj TypeCat (fibOp TypeCat (FamInd TypeCat))
 
+-- ContAdt is isomorphic to Cont
 public export
-Cont0 : Type
-Cont0 = GrothObj TypeCat (fibOp TypeCat (Fam0Ind TypeCat))
+ContAdt : Type
+ContAdt = GrothObj TypeCat (fibOp TypeCat (Fam0Ind TypeCat))
 
 public export
 ConstCont : Type
@@ -96,49 +89,57 @@ AdtObj : Type
 AdtObj = GrothObj TypeCat (fibOp TypeCat (constCat TypeCat))
 
 public export
-AdtObjGen : (c : Cat) -> Type
-AdtObjGen c = GrothObj c (fibOp c (constCat c))
+AdtObjC : (c : Cat) -> Type
+AdtObjC c = GrothObj c (fibOp c (constCat c))
 
-
---- %%%% Four kinds of embeddings, actions on objects
+-- they're isomorphic
 public export
-Cont0ToCont : Cont0 -> Cont
-Cont0ToCont dd = MkGrothObj dd.baseObj dd.fibObj
+ConstContToAdtObj : ConstCont -> AdtObj
+ConstContToAdtObj cc = MkGrothObj cc.baseObj cc.fibObj
 
+-- they're isomorphic
 public export
-AdtObjToConstCont : AdtObj -> ConstCont
-AdtObjToConstCont a = MkGrothObj a.baseObj a.fibObj
-
-public export
-AdtObjToCont0 : AdtObj -> Cont0
-AdtObjToCont0 a = MkGrothObj a.baseObj (\_ => a.fibObj)
-
-public export
-ConstContToCont : ConstCont -> Cont
-ConstContToCont a = MkGrothObj a.baseObj (\_ => a.fibObj)
+ContToContAdt : Cont -> ContAdt
+ContToContAdt c = MkGrothObj c.baseObj c.fibObj
 
 --- %%%% Four kinds of embeddings, actions on morphisms
-DepAdtToDepLens : {A, B : Cont0}
-  -> (arr (DepAdt TypeCat)) A B
-  -> (arr (DepLens TypeCat)) (Cont0ToCont A) (Cont0ToCont B)
-DepAdtToDepLens (MkGrothMor f f') = MkGrothMor f (\a => f' a)
--- can't completely eta-reduce because of lack of subtyping of erasable types
+public export
+DepAdtToDepLens : Functor (DepAdt TypeCat) (DepLens TypeCat)
+DepAdtToDepLens = MkFunctor
+  (\c0 => MkGrothObj c0.baseObj c0.fibObj)
+  (\f => MkGrothMor f.baseMor (\a => f.fibMor a))
+  -- can't completely eta-reduce because of lack of subtyping of erasable types
 
+public export
+LensToDepLens : Functor Lens (DepLens TypeCat)
+LensToDepLens = MkFunctor
+  (\cc => MkGrothObj cc.baseObj (\ _=> cc.fibObj))
+  (\f => MkGrothMor f.baseMor (curry f.fibMor)) -- hmm we need to curry
 
-LensToDepLens : {A, B : ConstCont}
-  -> (arr Lens) A B
-  -> (arr (DepLens TypeCat)) (ConstContToCont A) (ConstContToCont B)
-LensToDepLens (MkGrothMor f f') = MkGrothMor f (curry f') -- hmm we need to curry
+public export
+AdtToLens : Functor (Adt TypeCat TypeCat) Lens
+AdtToLens = MkFunctor
+  (\ao => MkGrothObj ao.baseObj ao.fibObj)
+  (\f => MkGrothMor f.baseMor (f.fibMor . snd)) -- hmm we need to curry
 
-AdtToLens : {A, B : AdtObj}
-  -> (arr (Adt TypeCat TypeCat)) A B
-  -> (arr Lens) (AdtObjToConstCont A) (AdtObjToConstCont B)
-AdtToLens (MkGrothMor f f') = MkGrothMor f (\(_, b) => f' b)
+public export
+AdtToDepAdt : Functor (Adt TypeCat TypeCat) (DepAdt TypeCat)
+AdtToDepAdt = MkFunctor
+  (\ao => MkGrothObj ao.baseObj (\_ => ao.fibObj))
+  (\f => MkGrothMor f.baseMor (\_ => f.fibMor))
 
-AdtToDepAdt : {A, B : AdtObj}
-  -> (arr (Adt TypeCat TypeCat)) A B
-  -> (arr (DepAdt TypeCat)) (AdtObjToCont0 A) (AdtObjToCont0 B)
-AdtToDepAdt (MkGrothMor f f') = MkGrothMor f (\_ => f')
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+-- Hom, DepHom
+--%%%%%%%%%%%%%%%%%%%%%%%%%--
+
+-- this is all "dependent functions along the identity?"
+public export
+Hom : {m : Cat} -> Functor (Adt m m) (opCat TypeCat)
+Hom = MkFunctor (\o => (arr m) o.baseObj o.fibObj) ?zza -- need composition to implement!
+
+public export
+DepHom : Functor (DepAdt TypeCat) (opCat TypeCat)
+DepHom = MkFunctor (\o => DFunction o.baseObj o.fibObj) ?zzb -- need composition to implement!
 
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
