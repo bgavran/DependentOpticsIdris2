@@ -1,6 +1,8 @@
 module Erased
 
 import Data.Either
+import Data.DPair
+
 
 public export
 data Fin0 : (0 n : Nat) -> Type where
@@ -43,6 +45,25 @@ record Exists0 (type : Type) (p : (0 _ : type) -> Type) where
   0 fst : type
   snd : p fst
 
+embed : DPair a b -> Exists b
+embed (a ** b) = Evidence a b
+
+-- hh : (x, y : Exists b) -> Type
+-- hh x y = ?ell
+
+Trm : a -> Type
+Trm _ = ()
+
+-- Given A:C, we call a pair (Z:C, e:A -> C) an erased A iff it is the coequaliser of every pair of morphisms into A.
+
+-- data MyExists : (P : a -> Type) -> Type where
+--   Evidence : @0 (x : a) -> (pf : P x) -> Exists P
+
+-- vv : {A : Type} -> A -> Exists {a=A} Trm
+-- vv a = Evidence ?aal ?aff
+
+-- out : Exists b -> ?el
+  
 public export
 record Subset0 (type : Type) (0 p : (0 _ : type) -> Type ) where
   constructor El
@@ -56,20 +77,6 @@ mapEither :
   -> Either c d
 mapEither f g (Left a) = Left (f a)
 mapEither f g (Right b) = Right (g b)
-
-
-public export
-record Unerase (A : Type) (0 a : A) where
-  constructor MkUnerase
-  aRes : A
-  p : a = aRes
-
-public export
-record PairProof (A : Type) (a : A) where
-  constructor MkPairProof
-  aRes : A
-  p : a = aRes
-
 
 
 public export

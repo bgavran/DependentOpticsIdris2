@@ -8,7 +8,7 @@ record WeightedCoparaMor
   (c : Cat)
   (m : Cat)
   (ac : NonDepAct c m)
-  (s : Functor m (opCat TypeCat)) -- for dep optics s also has to be a monoidal functor (this is because we need to be able to write composition)
+  (s : Functor m (opCat TypeCat))
   (A, B : c.obj) where
   constructor MkWCoparaMor
   M : m.obj
@@ -27,3 +27,7 @@ CoparaCartesian = CoparaCat TypeCat TypeCat CartAction
 
 CoparaCoCartesian : Cat
 CoparaCoCartesian = CoparaCat TypeCat TypeCat CoCartAction
+
+
+-- ff : (arr CoparaCartesian) Bool String
+-- ff = MkWCoparaMor ?m () ?f

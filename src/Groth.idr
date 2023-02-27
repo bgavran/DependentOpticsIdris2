@@ -132,7 +132,6 @@ AdtToDepAdt = MkFunctor
 -- Hom, DepHom
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 
--- this is all "dependent functions along the identity?"
 public export
 Hom : {m : Cat} -> Functor (Adt m m) (opCat TypeCat)
 Hom = MkFunctor (\o => (arr m) o.baseObj o.fibObj) ?zza -- need composition to implement!

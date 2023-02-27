@@ -143,37 +143,31 @@ DepCartAction = MkDepAct $ \x => MkFunctor
 --   (\f => (a : x) -> f a)
 --   (\f, g, a => f a ?ef) -- f => (a : x) -> f a)
 
-                       {-
-public export
-fibreFamAct : NonDepAct TypeCat TypeCat -> NonDepAct (Fam TypeCat a) TypeCat
-fibreFamAct f = MkDepAct (\p, b => \a0 => (act f) b (p a0))
-
-public export
-fibreFamAct' : NonDepAct TypeCat TypeCat -> NonDepAct (Fam TypeCat a) (Fam TypeCat a)
-fibreFamAct' f = MkDepAct (\p, b => \a => (act f) (b a) (p a))
-
+{-
 public export
 DepCart0Action : Fam0IndAction
 DepCart0Action = MkDepAct DPair -- Exists0
 -}
 
-0 objProd : (a, b : Cont)
-  -> NonDepAct TypeCat TypeCat
+0 objProd : NonDepAct TypeCat TypeCat
+  -> (a, b : Cont)
   -> Cont
-objProd a b ac = MkGrothObj (Pair a.baseObj b.baseObj) (\x => ((act ac) (a.fibObj (fst x))).mapObj (b.fibObj (snd x)))
+objProd ac a b = MkGrothObj
+  (Pair a.baseObj b.baseObj)
+  (\x => ((act ac) (a.fibObj (fst x))).mapObj (b.fibObj (snd x)))
 
 -- Every monoidal product on Set gives rise to a monoidal product on DepLens
 -- This is given pointwise, see https://arxiv.org/abs/2202.00534
 public export
-DepLensNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct (DepLens TypeCat) (DepLens TypeCat)
-DepLensNonDepAct ac = MkDepAct $ \a => MkFunctor
-  (\b => objProd a b ac)
+FromActionOnBaseDepLens : NonDepAct TypeCat TypeCat -> NonDepAct (DepLens TypeCat) (DepLens TypeCat)
+FromActionOnBaseDepLens ac = MkDepAct $ \a => MkFunctor
+  (objProd ac a)
   (\f => MkGrothMor (mapSnd f.baseMor) (\(aLeft, xRight) => ((act ac) (a.fibObj aLeft)).mapMor ((f.fibMor) xRight)))
 
 -- Works for dependent adapters too
 public export
-DepAdtNonDepAct : NonDepAct TypeCat TypeCat -> NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
-DepAdtNonDepAct ac = MkDepAct $ \aa' => MkFunctor
+FromActionOnBase : NonDepAct TypeCat TypeCat -> NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
+FromActionOnBase ac = MkDepAct $ \aa' => MkFunctor
   (\bb' => MkGrothObj (Pair aa'.baseObj bb'.baseObj) (\x => ((act ac) (aa'.fibObj (fst x))).mapObj (bb'.fibObj (snd x))))
   (\f => MkGrothMor (mapSnd f.baseMor) (\(aLeft, xRight) => (((act ac) (aa'.fibObj aLeft)).mapMor ((f.fibMor) xRight))))
 

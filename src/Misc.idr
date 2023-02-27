@@ -13,15 +13,6 @@ public export
 eval : (a, a -> b) -> b
 eval x = (snd x) (fst x)
 
-
--- a non-dependent erased function f : x -> y is a constant fn
--- it factors through x -> () -> y
--- f : (0 x : Int) -> Type
--- f x = ?ee
-
--- a also must be inhabited
-g : ((0 _ : a) -> b) -> a -> () -> b
-g f a = \_ => f a
-
-i : b -> ((0 _ : a) -> b)
-i b = \_ => b
+public export
+onlyOne : {a : Type} -> (x : a) -> Type 
+onlyOne x = (aRes : a ** x = aRes)
