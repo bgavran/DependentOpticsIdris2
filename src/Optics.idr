@@ -18,6 +18,7 @@ OpticCat c d m a = WeightedCoparaCat
   a
   Hom
 
+
 DepOpticCat : (a : NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)) -> Cat
 DepOpticCat a = WeightedCoparaCat
   (DepAdt TypeCat)
@@ -137,8 +138,8 @@ DepAdtToDepOptic = MkFunctor id $ \(MkGrothMor f f') => MkWCoparaMor
   (MkGrothObj () (\_ => ()))
   id
   (MkGrothMor (\a => (f a, ())) (\0 a0, x => f' a0 (fst x)))
-  
-  
+
+
 PrismToDepPrismMor : {A, B : AdtObj}
   -> (arr CoCartOptic) A B
   -> (arr (DepOpticCat CoCartDepAdt)) (AdtToDepAdt .mapObj A) (AdtToDepAdt .mapObj B)

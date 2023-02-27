@@ -13,6 +13,7 @@ public export
 eval : (a, a -> b) -> b
 eval x = (snd x) (fst x)
 
+-- Probably deserves a better name
 public export
-onlyOne : {a : Type} -> (x : a) -> Type 
+onlyOne : {a : Type} -> (x : a) -> Type
 onlyOne x = (aRes : a ** x = aRes)
