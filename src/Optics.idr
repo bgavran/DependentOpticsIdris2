@@ -49,12 +49,12 @@ Grate = TwoActionsToOptic TypeCat TypeCat TypeCat HomAction CartAction
 AffTraversal : Cat
 AffTraversal = TwoActionsToOptic TypeCat TypeCat (productCat TypeCat TypeCat)  AffTraversalAct AffTraversalAct
 
-ArbHom : (A, B : ContAdt)
-  -> (arr (DepOpticCat (FromActionOnBase CartAction))) A B
-ArbHom (MkGrothObj a a') (MkGrothObj b b') = MkWCoparaMor
-  (MkGrothObj ?a1 ?a2)
-  ?a3
-  (MkGrothMor ?a4 ?a5)
+-- ArbHom : (A, B : ContAdt)
+--   -> (arr (DepOpticCat (FromActionOnBase CartAction))) A B
+-- ArbHom (MkGrothObj a a') (MkGrothObj b b') = MkWCoparaMor
+--   (MkGrothObj ?a1 ?a2)
+--   ?a3
+--   (MkGrothMor ?a4 ?a5)
 
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
@@ -106,8 +106,13 @@ DepLensToDepOpticMor : {a, b : Cont}
 DepLensToDepOpticMor (MkGrothMor f f') = MkWCoparaMor
   (MkGrothObj a.baseObj onlyOne)
   (\a => (a ** Refl))
-  (MkGrothMor (graph f) (lm {f} {f'} {a} {b}))
-
+  $ MkGrothMor
+    (graph f)
+    (\0 a0 => lmm)
+    where lmm : (b .fibObj (f a0), (aRes : a .baseObj ** a0 = aRes)) -> a .fibObj a0
+          lmm (b', (aRes ** p)) = rewrite p in f' aRes (rewrite (sym p) in b')
+    -- where lm : (b .fibObj (f a0), (a .baseObj ** a0)) -> a .fibObj a0
+    --       lm (b', MkPairProof aRes p) = rewrite p in f' aRes (rewrite (sym p) in b')
 
 DepLensToDepOptic : Functor (DepLens TypeCat) (DepOpticCat (FromActionOnBase CartAction))
 DepLensToDepOptic = MkFunctor ContToContAdt DepLensToDepOpticMor
