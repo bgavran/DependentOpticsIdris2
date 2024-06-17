@@ -23,7 +23,7 @@ DepActReparam : (c : Cat)
   -> DepAct c g
 DepActReparam c f g r (MkDepAct a) = MkDepAct $ \x => MkFunctor
   ((a x).mapObj . (r x).mapObj)
-  ((a x).mapMor . (r x).mapMor)
+  (\_, _ => (a x).mapMor _ _ . (r x).mapMor _ _)
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Some types of actions
@@ -68,19 +68,19 @@ NonDepAct2DepAct = id
 
 public export
 CartAction : NonDepAct TypeCat TypeCat
-CartAction = MkDepAct $ \x => MkFunctor (Pair x) mapSnd
+CartAction = MkDepAct $ \x => MkFunctor (Pair x) (\_, _ => mapSnd)
 
 public export
 CoCartAction : DepAct TypeCat (constCat TypeCat)
-CoCartAction = MkDepAct $ \x => MkFunctor (Either x) mapSnd
+CoCartAction = MkDepAct $ \x => MkFunctor (Either x) (\_, _ => mapSnd)
 
 public export
 HomAction : DepAct TypeCat (constCat TypeCat)
-HomAction = MkDepAct $ \a => MkFunctor (\b => a -> b) (.)
+HomAction = MkDepAct $ \a => MkFunctor (\b => a -> b) (\_, _ => (.))
 
 public export
 Proj2Action : DepAct TypeCat (constCat TypeCat)
-Proj2Action = MkDepAct $ \_ => MkFunctor id id
+Proj2Action = MkDepAct $ \_ => idFunctor _
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Some other concrete actions
@@ -104,7 +104,7 @@ TwoActionsToAdtAction : (c, d, m, n: Cat)
   -> NonDepAct (Adt c d) (Adt m n)
 TwoActionsToAdtAction c d m n l r = MkDepAct $ \x => MkFunctor
   (\mm => MkGrothObj (((act l) (baseObj x)).mapObj (baseObj mm)) (((act r) (fibObj x)).mapObj (fibObj mm)))
-  (\mm => MkGrothMor (((act l) (baseObj x)).mapMor (baseMor mm)) (((act r) (fibObj x)).mapMor (fibMor mm)))
+  (\_, _, mm => MkGrothMor (((act l) (baseObj x)).mapMor _ _ (baseMor mm)) (((act r) (fibObj x)).mapMor _ _ (fibMor mm)))
 
 
 -- )
@@ -113,29 +113,34 @@ public export
 CoCartAdt : NonDepAct (Adt TypeCat TypeCat) (Adt TypeCat TypeCat)
 CoCartAdt = MkDepAct $ \a => MkFunctor
   (\b => MkGrothObj (Either a.baseObj b.baseObj) (Either a.fibObj b.fibObj))
-  (\f => MkGrothMor (mapSnd f.baseMor) (mapSnd f.fibMor))
+  (\_, _, f => MkGrothMor (mapSnd f.baseMor) (mapSnd f.fibMor))
 
 
 
 public export
 CoCartDepAdt : NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
 CoCartDepAdt = MkDepAct $ \a => MkFunctor
-  (\b => MkGrothObj (Either (a.baseObj) (b.baseObj)) (\x => Either0 x (a.fibObj) (b.fibObj)))
-  (\f => MkGrothMor (mapSnd f.baseMor) (\x0 => let t = f.fibMor
-                                               in ?zhmmm))
+  (\b => MkGrothObj (Either (a.baseObj) (b.baseObj)) (\x => EitherCheck x (a.fibObj) (b.fibObj)))
+  (\x, y, f => MkGrothMor (mapSnd f.baseMor)
+      (\x0 => \case (IsLeft' {x=h} val check) =>
+                      let (v' ** (p1, p2)) = bimapLeft x0 h check
+                      in IsLeft' val (p1 `trans` cong Left p2)
+                    (IsRight' {x=h} val check) =>
+                      let (v' ** (p1, p2)) = bimapRight x0 h check
+                      in IsRight' (f.fibMor v' (replace {p = y.fibObj} (sym p2) val)) p1))
 
 
 public export
 AffTraversalAct : NonDepAct TypeCat (productCat TypeCat TypeCat)
 AffTraversalAct = MkDepAct $ \x => MkFunctor
   (\mn => Either (fst mn) (Pair (snd mn) x))
-  (\mn => bimap (fst mn) (mapFst (snd mn)))
+  (\_, _, mn => bimap (fst mn) (mapFst (snd mn)))
 
 public export
 DepCartAction : FamIndAction
 DepCartAction = MkDepAct $ \x => MkFunctor
   (DPair x)
-  (\f, dp => (fst dp ** f (fst dp) (snd dp))) -- mapSnd instance for DPair?
+  (\_, _, f, dp => (fst dp ** f (fst dp) (snd dp))) -- mapSnd instance for DPair?
 
 -- public export
 -- DepPiAction : FamIndAction
@@ -162,14 +167,18 @@ public export
 FromActionOnBaseDepLens : NonDepAct TypeCat TypeCat -> NonDepAct (DepLens TypeCat) (DepLens TypeCat)
 FromActionOnBaseDepLens ac = MkDepAct $ \a => MkFunctor
   (objProd ac a)
-  (\f => MkGrothMor (mapSnd f.baseMor) (\(aLeft, xRight) => ((act ac) (a.fibObj aLeft)).mapMor ((f.fibMor) xRight)))
+  (\_, _, f => MkGrothMor
+      (mapSnd f.baseMor)
+      (\(aLeft, xRight) => ((act ac) (a.fibObj aLeft)).mapMor _ _ ((f.fibMor) xRight)))
 
 -- Works for dependent adapters too
 public export
 FromActionOnBase : NonDepAct TypeCat TypeCat -> NonDepAct (DepAdt TypeCat) (DepAdt TypeCat)
 FromActionOnBase ac = MkDepAct $ \aa' => MkFunctor
   (\bb' => MkGrothObj (Pair aa'.baseObj bb'.baseObj) (\x => ((act ac) (aa'.fibObj (fst x))).mapObj (bb'.fibObj (snd x))))
-  (\f => MkGrothMor (mapSnd f.baseMor) (\(aLeft, xRight) => (((act ac) (aa'.fibObj aLeft)).mapMor ((f.fibMor) xRight))))
+  (\_, _, f => MkGrothMor
+      (mapSnd f.baseMor)
+      (\(aLeft, xRight) => (((act ac) (aa'.fibObj aLeft)).mapMor _ _ ((f.fibMor) xRight))))
 
   {-
 

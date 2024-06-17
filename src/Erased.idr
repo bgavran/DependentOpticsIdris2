@@ -63,7 +63,7 @@ Trm _ = ()
 -- vv a = Evidence ?aal ?aff
 
 -- out : Exists b -> ?el
-  
+
 public export
 record Subset0 (type : Type) (0 p : (0 _ : type) -> Type ) where
   constructor El
@@ -78,8 +78,41 @@ mapEither :
 mapEither f g (Left a) = Left (f a)
 mapEither f g (Right b) = Right (g b)
 
+%unbound_implicits off
+export 0
+bimapLeft : forall a, a', b, b'.
+            {f : a -> a'} -> {g : b -> b'} ->
+            (x0 : Either a b) ->
+            (y : a') ->
+            bimap f g x0 === Left y -> (v ** (x0 === Left v, f v === y))
+bimapLeft (Left val) y refl = (val ** (Refl, injective refl))
+bimapLeft (Right val) y refl = absurd refl
+
+export 0
+bimapRight : forall a, a', b, b'.
+            {f : a -> a'} -> {g : b -> b'} ->
+            (x0 : Either a b) ->
+            (y : b') ->
+            bimap f g x0 === Right y -> (v ** (x0 === Right v, g v === y))
+bimapRight (Left val) y refl = absurd refl
+bimapRight (Right val) y refl = (val ** (Refl, injective refl))
+
+%unbound_implicits on
 
 public export
-data Either0 : (0 _ : Either a b) -> (a -> Type) -> (b -> Type) -> Type where
-  IsLeft : {0 x : a} -> {0 f : a -> Type} -> f x -> Either0 (Left x) f g
-  IsRight : {0 x : b} -> {0 g : b -> Type} -> g x -> Either0 (Right x) f g
+data EitherCheck : (0 _ : Either a b) -> (a -> Type) -> (b -> Type) -> Type where
+  IsLeft' : {0 x : a} -> {0 f : a -> Type} -> {0 e : Either a b} -> f x ->
+            (check : e === Left x) -> EitherCheck e f g
+  IsRight' : {0 x : b} -> {0 g : b -> Type} -> {0 e : Either a b} -> g x ->
+             (check : e = Right x) -> EitherCheck e f g
+
+public export
+mapBoth :
+    (0 e : Either a b) -> {0 p' : a' -> Type} -> {0 p : a -> Type} -> {0 q : b' -> Type} ->
+    {0 f : a -> a'} -> {0 g : b -> b'} ->
+    (m1 : (0 x : a) -> p' (f x) -> p x) ->
+    EitherCheck (bimap f g e) p' q' ->
+    EitherCheck e (p' . f) (q' . g)
+mapBoth e m1 (IsLeft' val check) = IsLeft' ?ccc ?mapBoth_rhs_0
+mapBoth e m1 (IsRight' val check) = IsRight' ?bbb ?mapBoth_rhs_1
+

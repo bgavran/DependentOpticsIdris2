@@ -18,7 +18,7 @@ record GrothMor (c : Cat) (d : IndCat c) (s : GrothObj c d) (t : GrothObj c d) w
   baseMor : c.arr s.baseObj t.baseObj
   fibMor : (d.mapObj s.baseObj).arr
            s.fibObj
-           ((d.mapMor {x = s.baseObj} {y = t.baseObj} baseMor).mapObj t.fibObj)
+           ((d.mapMor s.baseObj t.baseObj baseMor).mapObj t.fibObj)
 
 public export
 groth : (c : Cat) -> IndCat c -> Cat
@@ -107,26 +107,26 @@ public export
 DepAdtToDepLens : Functor (DepAdt TypeCat) (DepLens TypeCat)
 DepAdtToDepLens = MkFunctor
   (\c0 => MkGrothObj c0.baseObj c0.fibObj)
-  (\f => MkGrothMor f.baseMor (\a => f.fibMor a))
+  (\_, _, f => MkGrothMor f.baseMor (\a => f.fibMor a))
   -- can't completely eta-reduce because of lack of subtyping of erasable types
 
 public export
 LensToDepLens : Functor Lens (DepLens TypeCat)
 LensToDepLens = MkFunctor
   (\cc => MkGrothObj cc.baseObj (\ _=> cc.fibObj))
-  (\f => MkGrothMor f.baseMor (curry f.fibMor)) -- hmm we need to curry
+  (\_, _, f => MkGrothMor f.baseMor (curry f.fibMor)) -- hmm we need to curry
 
 public export
 AdtToLens : Functor (Adt TypeCat TypeCat) Lens
 AdtToLens = MkFunctor
   (\ao => MkGrothObj ao.baseObj ao.fibObj)
-  (\f => MkGrothMor f.baseMor (f.fibMor . snd)) -- hmm we need to curry
+  (\_, _, f => MkGrothMor f.baseMor (f.fibMor . snd)) -- hmm we need to curry
 
 public export
 AdtToDepAdt : Functor (Adt TypeCat TypeCat) (DepAdt TypeCat)
 AdtToDepAdt = MkFunctor
   (\ao => MkGrothObj ao.baseObj (\_ => ao.fibObj))
-  (\f => MkGrothMor f.baseMor (\_ => f.fibMor))
+  (\_, _, f => MkGrothMor f.baseMor (\_ => f.fibMor))
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Hom, DepHom

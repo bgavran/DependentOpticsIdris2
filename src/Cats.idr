@@ -13,26 +13,26 @@ opCat : Cat -> Cat
 opCat c = MkCat c.obj (flip c.arr)
 
 public export
-productCat : (c : Cat) -> (d : Cat) -> Cat
+productCat : (c, d : Cat) -> Cat
 productCat c d = MkCat (obj c, obj d) (\a, b => ((arr c) (fst a) (fst b), (arr d) (snd a) (snd b)))
 
 public export
 record Functor (c, d : Cat) where
   constructor MkFunctor
   0 mapObj : c.obj -> d.obj
-  0 mapMor : {x, y : c.obj} -> c.arr x y -> d.arr (mapObj x) (mapObj y)
+  0 mapMor : (x, y : c.obj) -> c.arr x y -> d.arr (mapObj x) (mapObj y)
 
 public export
 idFunctor : (c : Cat) -> Functor c c
-idFunctor c = MkFunctor id id
+idFunctor c = MkFunctor id (\_, _ => id)
 
 public export
 opFunctor : {c, d : Cat} -> Functor c d -> Functor (opCat c) (opCat d)
-opFunctor f = MkFunctor (mapObj f) (mapMor f)
+opFunctor f = MkFunctor (mapObj f) (\_, _ => mapMor f _ _ )
 
 public export
 compFunctor : {c, d, e : Cat} -> Functor c d -> Functor d e -> Functor c e
-compFunctor f g = MkFunctor (mapObj g . mapObj f) (mapMor g . mapMor f)
+compFunctor f g = MkFunctor (mapObj g . mapObj f) (\_, _ => mapMor g _ _ . mapMor f _ _)
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Examples of categories
@@ -61,16 +61,16 @@ IndFunctor c f g = (x : c.obj) -> Functor ((mapObj f) x) ((mapObj g) x)
 
 public export
 constCat : {c : Cat} -> (d : Cat) -> IndCat c
-constCat d = MkFunctor (\_ => d) (\_ => idFunctor d)
+constCat d = MkFunctor (\_ => d) (\_, _ , _ => idFunctor d)
 
 public export
 fibOp : (c : Cat) -> IndCat c -> IndCat c
-fibOp c ic = MkFunctor (opCat . ic.mapObj) (opFunctor . ic.mapMor)
+fibOp c ic = MkFunctor (opCat . ic.mapObj) (\_, _ => opFunctor . ic.mapMor _ _)
 
 -- this function should in principle be the same as constCat
 public export
 constType : Type -> Functor c (opCat TypeCat)
-constType t = MkFunctor (\_ => t) (\_ => id)
+constType t = MkFunctor (\_ => t) (\_, _, _ => id)
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
 -- Examples of indexed categories
@@ -88,7 +88,7 @@ Fam c a = MkCat
 -- And this is an indexed category over the category of types
 public export
 FamInd : (c : Cat) -> IndCat TypeCat
-FamInd c = MkFunctor (Fam c) (\f => MkFunctor (. f) (\j, xx => j (f xx)))
+FamInd c = MkFunctor (Fam c) (\_, _, f => MkFunctor (. f) (\_, _, j, xx => j (f xx)))
 
 DepFn : {x, y : Type}
   -> (x -> y)
@@ -122,7 +122,7 @@ CoKleisli p = MkCat
 
 public export
 CoKleisliInd : IndCat TypeCat
-CoKleisliInd = MkFunctor CoKleisli (\f => MkFunctor id (\g => g . (mapFst f)))
+CoKleisliInd = MkFunctor CoKleisli (\_, _, f => MkFunctor id (\_, _, g => g . (mapFst f)))
 
 -- %%%%%%%
 -- For a category `c` and a type `a` there is a category of `0 : a`-indexed c objects
@@ -136,7 +136,7 @@ Fam0 c a = MkCat
 -- 0 is a functor Type -> Type
 public export
 Fam0Ind : (c : Cat) -> IndCat TypeCat
-Fam0Ind c = MkFunctor (Fam0 c) (\f => MkFunctor (. f) (\j, xx => j (f xx)))
+Fam0Ind c = MkFunctor (Fam0 c) (\_, _, f => MkFunctor (. f) (\_, _, j, xx => j (f xx)))
 
 
 fn : (arr TypeCat) Bool String

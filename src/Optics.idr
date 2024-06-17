@@ -63,15 +63,15 @@ AffTraversal = TwoActionsToOptic TypeCat TypeCat (productCat TypeCat TypeCat)  A
 
 CartOpticToDepOptic : Functor CartOptic (DepOpticCat (FromActionOnBase CartAction))
 CartOpticToDepOptic = MkFunctor (AdtToDepAdt .mapObj)
-  $ \(MkWCoparaMor m s (MkGrothMor f f')) => MkWCoparaMor
+  $ \_, _, (MkWCoparaMor m s (MkGrothMor f f')) => MkWCoparaMor
     (AdtToDepAdt .mapObj m)
     s
     (MkGrothMor f (\0 _ => f'))
 
-LensToCartOpticMor : {A, B : ConstCont}
+LensToCartOpticMor : (A, B : ConstCont)
   -> (arr Lens) A B
   -> (arr CartOptic) (ConstContToAdtObj A) (ConstContToAdtObj B)
-LensToCartOpticMor {A=a} (MkGrothMor f f') = MkWCoparaMor
+LensToCartOpticMor a b (MkGrothMor f f') = MkWCoparaMor
   (MkGrothObj a.baseObj a.baseObj)
   id
   (MkGrothMor (graph f) (f' . swap))
@@ -79,10 +79,10 @@ LensToCartOpticMor {A=a} (MkGrothMor f f') = MkWCoparaMor
 LensToCartOptic : Functor Lens CartOptic
 LensToCartOptic = MkFunctor ConstContToAdtObj LensToCartOpticMor
 
-LensToClosedFormMor : {a, b : ConstCont}
+LensToClosedFormMor : (a, b : ConstCont)
   -> (arr Lens) a b
   -> (arr CartOptic) (ConstContToAdtObj a) (ConstContToAdtObj b)
-LensToClosedFormMor (MkGrothMor f f') = MkWCoparaMor
+LensToClosedFormMor a b (MkGrothMor f f') = MkWCoparaMor
   (MkGrothObj a.baseObj (b.fibObj -> a.fibObj))
   (curry f')
   (MkGrothMor (graph f) eval)
@@ -99,28 +99,30 @@ lm a0 (b', (aRes ** p)) = let b'' = cong {a = a0} {b=aRes} (\x => b.fibObj (f x)
                               v = f' aRes (replace {p = id} b'' b')
                           in replace {p = \x => a.fibObj x} (sym p) v
 
-
-DepLensToDepOpticMor : {a, b : Cont}
+DepLensToDepOpticMor : (a, b : Cont)
   -> (arr (DepLens TypeCat)) a b
   -> (arr (DepOpticCat (FromActionOnBase CartAction))) (ContToContAdt a) (ContToContAdt b)
-DepLensToDepOpticMor (MkGrothMor f f') = MkWCoparaMor
+DepLensToDepOpticMor a b (MkGrothMor f f') = MkWCoparaMor
   (MkGrothObj a.baseObj onlyOne)
   (\a => (a ** Refl))
   $ MkGrothMor
     (graph f)
-    (\0 a0 => lmm)
-    where lmm : (b .fibObj (f a0), (aRes : a .baseObj ** a0 = aRes)) -> a .fibObj a0
-          lmm (b', (aRes ** p)) = rewrite p in f' aRes (rewrite (sym p) in b')
-    -- where lm : (b .fibObj (f a0), (a .baseObj ** a0)) -> a .fibObj a0
-    --       lm (b', MkPairProof aRes p) = rewrite p in f' aRes (rewrite (sym p) in b')
+    lmm
+    where
+      lmm : (0 a0 : a.baseObj) ->
+            (b.fibObj (f a0), (aRes : a.baseObj ** a0 = aRes)) ->
+            a.fibObj a0
+      lmm a0 (b', (aRes ** p)) = let
+        pp = f' aRes (replace {p = b .fibObj . f} p b')
+        in replace {p = a.fibObj} (sym p) pp
 
 DepLensToDepOptic : Functor (DepLens TypeCat) (DepOpticCat (FromActionOnBase CartAction))
 DepLensToDepOptic = MkFunctor ContToContAdt DepLensToDepOpticMor
 
-DepLensToClosedFormMor : {a, b : Cont}
+DepLensToClosedFormMor : (a, b : Cont)
   -> (arr (DepLens TypeCat)) a b
   -> (arr (DepOpticCat (FromActionOnBase CartAction))) (ContToContAdt a) (ContToContAdt b)
-DepLensToClosedFormMor (MkGrothMor f f') = MkWCoparaMor
+DepLensToClosedFormMor a b (MkGrothMor f f') = MkWCoparaMor
   (MkGrothObj a.baseObj (\a0 => b.fibObj (f a0) -> a.fibObj a0))
   f'
   (MkGrothMor (graph f) (\0 _ => eval))
@@ -139,11 +141,10 @@ DepAdtToDepOpticMor (MkGrothMor f f') = MkWCoparaMor
   (\0 a0, x => f' a0 (fst x))
 
 DepAdtToDepOptic : Functor (DepAdt TypeCat) (DepOpticCat (FromActionOnBase CartAction))
-DepAdtToDepOptic = MkFunctor id $ \(MkGrothMor f f') => MkWCoparaMor
+DepAdtToDepOptic = MkFunctor id $ \_, _, (MkGrothMor f f') => MkWCoparaMor
   (MkGrothObj () (\_ => ()))
   id
   (MkGrothMor (\a => (f a, ())) (\0 a0, x => f' a0 (fst x)))
-
 
 PrismToDepPrismMor : {A, B : AdtObj}
   -> (arr CoCartOptic) A B
@@ -152,15 +153,13 @@ PrismToDepPrismMor (MkWCoparaMor (MkGrothObj rbase rfib) s (MkGrothMor fwd bwd))
   (MkGrothObj rbase (\_ => rfib))
   s
   $ MkGrothMor fwd wc
-  where wc : (0 a0 : A .baseObj) -> Either0 (fwd a0) (\_ => B .fibObj) (\_ => rfib) -> A .fibObj
-        wc a0 x with 0 (fwd a0)
-          wc a0 x | with_pat with (x)
-            wc a0 x | (Left x') | (IsLeft y) = bwd (Left y)
-            wc a0 x | (Right x') | (IsRight y) = bwd (Right y)
+  where wc : (0 a0 : A .baseObj) -> EitherCheck (fwd a0) (\_ => B .fibObj) (\_ => rfib) -> A .fibObj
+        wc a0 (IsLeft' y _) = bwd (Left y)
+        wc a0 (IsRight' y _) = bwd (Right y)
 
 
 CoCartOpticToDepCoCartOptic : Functor CoCartOptic (DepOpticCat CoCartDepAdt)
-CoCartOpticToDepCoCartOptic = MkFunctor (AdtToDepAdt .mapObj) PrismToDepPrismMor
+CoCartOpticToDepCoCartOptic = MkFunctor (AdtToDepAdt .mapObj) (\_, _ => PrismToDepPrismMor)
 
 
 --%%%%%%%%%%%%%%%%%%%%%%%%%--
