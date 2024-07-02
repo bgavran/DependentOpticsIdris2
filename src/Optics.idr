@@ -9,6 +9,8 @@ import Misc
 
 import Data.Either
 
+import Decidable.Equality
+
 OpticCat : (c, d, m : Cat)
   -> (a : NonDepAct (Adt c d) (Adt m m))
   -> Cat
@@ -196,3 +198,18 @@ leftPrism1 = MkPrism
 
 leftPrism : {a, b, c : _} -> (arr CoCartOptic) (MkGrothObj (Either a c) (Either b c)) (MkGrothObj a b)
 leftPrism = MkWCoparaMor (MkGrothObj c c) id (MkGrothMor id id)
+
+record ConcretePrism (a : Type) (a' : a -> Type) (b : Type) (b' : b -> Type) where
+  constructor CtPrism
+  match : (x : a) -> Either (a' x) b
+  build : (0 x : a) -> EitherCheck (match x) (const (a' x)) (const Void) -> a' x
+
+
+LawfulPrism : (a : Type) -> (d : DecEq a) =>  (a' : a -> Type) -> (b : Type) -> (b' : b -> Type) ->
+         (a0 : a) -> ConcretePrism ((x : a ** a' x)) (a' . (.fst)) (a' a0) (const (a' a0))
+LawfulPrism a a' b b' a0 =
+  CtPrism { match = (\v => case decEq @{d} v.fst a0 of Yes p => Right (replace {p = a'} p v.snd) ; No c => Left v.snd)
+          , build = (\arg => \case (IsLeft' x check) => x
+                                 ; (IsRight' x check) => absurd x)
+          }
+

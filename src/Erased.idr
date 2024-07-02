@@ -106,13 +106,3 @@ data EitherCheck : (0 _ : Either a b) -> (a -> Type) -> (b -> Type) -> Type wher
   IsRight' : {0 x : b} -> {0 g : b -> Type} -> {0 e : Either a b} -> g x ->
              (check : e = Right x) -> EitherCheck e f g
 
-public export
-mapBoth :
-    (0 e : Either a b) -> {0 p' : a' -> Type} -> {0 p : a -> Type} -> {0 q : b' -> Type} ->
-    {0 f : a -> a'} -> {0 g : b -> b'} ->
-    (m1 : (0 x : a) -> p' (f x) -> p x) ->
-    EitherCheck (bimap f g e) p' q' ->
-    EitherCheck e (p' . f) (q' . g)
-mapBoth e m1 (IsLeft' val check) = IsLeft' ?ccc ?mapBoth_rhs_0
-mapBoth e m1 (IsRight' val check) = IsRight' ?bbb ?mapBoth_rhs_1
-
