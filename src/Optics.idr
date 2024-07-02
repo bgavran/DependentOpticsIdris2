@@ -202,14 +202,34 @@ leftPrism = MkWCoparaMor (MkGrothObj c c) id (MkGrothMor id id)
 record ConcretePrism (a : Type) (a' : a -> Type) (b : Type) (b' : b -> Type) where
   constructor CtPrism
   match : (x : a) -> Either (a' x) b
-  build : (0 x : a) -> EitherCheck (match x) (const (a' x)) (const Void) -> a' x
+  build : (0 x : a) -> EitherCheck (match x) (const Void) b'  -> a' x
+
+
+record DepLens (a : Type) (a' : a -> Type) (b : Type) (b' : b -> Type) where
+  constructor MkDepLens
+  fn : (x : a) -> (y : b ** b' y -> a' x)
+
+data All : (a -> Type) -> (Maybe a)  -> Type where
+  Empty : All p Nothing
+  Value : {0 p : a -> Type} -> p x -> All p (Just x)
+
+data Any : (a -> Type) -> (Maybe a)  -> Type where
+  Here : {0 p : a -> Type} -> p x -> Any p (Just x)
+
+Uninhabited (Any p Nothing) where
+  uninhabited _ impossible
+
+toDepLens : ConcretePrism a a' b b' -> DepLens a a' (Maybe b) (Any b')
+toDepLens (CtPrism match build) = MkDepLens (\vx => case match vx of
+          (Left a'x) => (Nothing ** const a'x)
+          (Right bVal) => (Just bVal ** \(Here vy) => build vx (IsRight' {x = bVal} vy ?prr)))
 
 
 LawfulPrism : (a : Type) -> (d : DecEq a) =>  (a' : a -> Type) -> (b : Type) -> (b' : b -> Type) ->
          (a0 : a) -> ConcretePrism ((x : a ** a' x)) (a' . (.fst)) (a' a0) (const (a' a0))
 LawfulPrism a a' b b' a0 =
   CtPrism { match = (\v => case decEq @{d} v.fst a0 of Yes p => Right (replace {p = a'} p v.snd) ; No c => Left v.snd)
-          , build = (\arg => \case (IsLeft' x check) => x
-                                 ; (IsRight' x check) => absurd x)
+          , build = (\arg => \case (IsLeft' x check) => absurd x
+                                 ; (IsRight' x check) => replace {p = a'} (irrelevantEq ?ahuu) x)
           }
 
